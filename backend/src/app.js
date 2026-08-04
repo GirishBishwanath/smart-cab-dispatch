@@ -5,6 +5,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import errorHandler from "./middleware/error.middleware.js";
 import driverRoutes from "./routes/driver.routes.js";
 import guestRoutes from "./routes/guest.routes.js";
+import rideRequestRoutes from "./routes/rideRequest.routes.js";
 
 const app = express();
 
@@ -24,5 +25,6 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use(errorHandler);
 app.use("/api/guests", guestRoutes);
+app.use("/api/ride-requests", rideRequestRoutes);
 
 export default app;

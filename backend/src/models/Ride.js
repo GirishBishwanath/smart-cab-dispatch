@@ -22,6 +22,11 @@ const rideSchema = new mongoose.Schema(
             default: null,
         },
 
+        rideRequest: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "RideRequest",
+        },
+
         tripType: {
             type: String,
             enum: [

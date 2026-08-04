@@ -30,6 +30,12 @@ const driverSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+
+        currentRide: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Ride",
+            default: null,
+        },
     },
     {
         timestamps: true,

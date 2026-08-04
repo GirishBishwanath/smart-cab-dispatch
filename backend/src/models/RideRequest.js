@@ -83,6 +83,12 @@ const rideRequestSchema = new mongoose.Schema(
       default: null,
     },
 
+    ride: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Ride",
+      default: null,
+    },
+
     rejectionReason: {
       type: String,
       default: "",
