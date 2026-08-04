@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import ApiError from "../utils/ApiError.js";
+import userDTO from "../dto/user.dto.js";
 
 class AuthService {
     async login(email, password) {
@@ -31,7 +32,7 @@ class AuthService {
 
         return {
             token,
-            user,
+            user: userDTO(user),
         };
     }
 }
