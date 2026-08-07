@@ -72,6 +72,24 @@ const updateDriver = asyncHandler(async (req, res) => {
   );
 });
 
+const updateDriverStatus = asyncHandler(
+    async (req, res) => {
+
+        const driver =
+            await driverService.updateDriverStatus(
+                req.params.id,
+                req.body.status
+            );
+
+        return successResponse(
+            res,
+            driver,
+            "Driver status updated successfully"
+        );
+
+    }
+);
+
 const deleteDriver = asyncHandler(async (req, res) => {
   await driverService.deleteDriver(req.params.id);
 
@@ -87,5 +105,6 @@ export {
   getDrivers,
   getDriverById,
   updateDriver,
+  updateDriverStatus,
   deleteDriver,
 };

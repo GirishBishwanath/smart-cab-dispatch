@@ -75,7 +75,125 @@ const getRides = async () => {
     });
 };
 
+const getRideById = async (rideId) => {
+  const ride = await Ride.findById(rideId)
+    .populate({
+      path: "driver",
+      populate: {
+        path: "user",
+      },
+    })
+    .populate("vehicle")
+    .populate({
+      path: "guests",
+      populate: {
+        path: "user",
+      },
+    });
+
+  if (!ride) {
+    throw new ApiError(404, "Ride not found");
+  }
+
+  return ride;
+};
+
+const getCurrentDriverRide = async (userId) => {
+
+  const driver = await Driver.findOne({
+    user: userId,
+  });
+
+  if (!driver) {
+    throw new ApiError(
+      404,
+      "Driver not found"
+    );
+  }
+
+  const ride = await Ride.findOne({
+    driver: driver._id,
+    status: {
+      $in: [
+        RIDE_STATUS.ASSIGNED,
+        RIDE_STATUS.ARRIVED,
+        RIDE_STATUS.PICKED_UP,
+      ],
+    },
+  })
+    .populate({
+      path: "driver",
+      populate: {
+        path: "user",
+      },
+    })
+    .populate("vehicle")
+    .populate({
+      path: "guests",
+      populate: {
+        path: "user",
+      },
+    });
+
+  return ride;
+};
+
+const acknowledgeRide = async (rideId, userId) => {
+
+    const driver = await Driver.findOne({
+        user: userId,
+    });
+
+    if (!driver) {
+        throw new ApiError(404, "Driver not found");
+    }
+
+    const ride = await Ride.findById(rideId);
+
+    if (!ride) {
+        throw new ApiError(404, "Ride not found");
+    }
+
+    if (!ride.driver.equals(driver._id)) {
+        throw new ApiError(
+            403,
+            "This ride is not assigned to you."
+        );
+    }
+
+    if (ride.status !== RIDE_STATUS.ASSIGNED) {
+        throw new ApiError(
+            400,
+            "Only assigned rides can be acknowledged."
+        );
+    }
+
+    if (!ride.acceptedAt) {
+        ride.acceptedAt = new Date();
+        await ride.save();
+    }
+
+    return await Ride.findById(rideId)
+        .populate({
+            path: "driver",
+            populate: {
+                path: "user",
+            },
+        })
+        .populate({
+            path: "guests",
+            populate: {
+                path: "user",
+            },
+        });
+
+};
+
+
 export default {
   updateRideStatus,
   getRides,
+  getRideById,
+  getCurrentDriverRide,
+  acknowledgeRide,
 };

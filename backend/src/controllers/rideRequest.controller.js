@@ -7,7 +7,7 @@ import { successResponse } from "../utils/response.js";
 const createRideRequest = asyncHandler(async (req, res) => {
     const rideRequest =
         await rideRequestService.createRideRequest(
-            req.body.guestId,
+            req.user.id,
             req.body
         );
 
@@ -42,8 +42,23 @@ const approveRideRequest = asyncHandler(async (req, res) => {
     );
 });
 
+const declineRideRequest = asyncHandler(async (req, res) => {
+    const request =
+        await rideRequestService.declineRideRequest(
+            req.params.id,
+            req.body.reason
+        );
+
+    return successResponse(
+        res,
+        request,
+        "Ride request declined successfully"
+    );
+});
+
 export {
     createRideRequest,
     getRideRequests,
     approveRideRequest,
+    declineRideRequest,
 };

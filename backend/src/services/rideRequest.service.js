@@ -3,8 +3,10 @@ import Guest from "../models/Guest.js";
 import ApiError from "../utils/ApiError.js";
 import dispatchService from "./dispatch.service.js";
 
-const createRideRequest = async (guestId, data) => {
-    const guest = await Guest.findById(guestId);
+const createRideRequest = async (userId, data) => {
+    const guest = await Guest.findOne({
+        user: userId,
+    });
 
     if (!guest) {
         throw new ApiError(404, "Guest not found");
@@ -78,8 +80,40 @@ const approveRideRequest = async (id) => {
     return ride;
 };
 
+const declineRideRequest = async (id, reason = "") => {
+    const request = await RideRequest.findById(id);
+
+    if (!request) {
+        throw new ApiError(404, "Ride request not found");
+    }
+
+    if (request.status !== "PENDING") {
+        throw new ApiError(
+            400,
+            "Ride request already processed"
+        );
+    }
+
+    request.status = "REJECTED";
+
+    request.rejectionReason = reason;
+
+    request.approvedAt = null;
+
+    await request.save();
+
+    return request.populate({
+        path: "guest",
+        populate: {
+            path: "user",
+            select: "-password -__v",
+        },
+    });
+};
+
 export default {
     createRideRequest,
     getRideRequests,
     approveRideRequest,
+    declineRideRequest,
 };

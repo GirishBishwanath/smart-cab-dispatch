@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api.js";
 
 const STATUS = [
@@ -8,6 +9,7 @@ const STATUS = [
 ];
 
 const Rides = () => {
+  const navigate = useNavigate();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +75,8 @@ const Rides = () => {
 
             <th className="p-4 text-left">Update</th>
 
+            <th className="p-4 text-left">Details</th>
+
           </tr>
 
         </thead>
@@ -88,19 +92,61 @@ const Rides = () => {
 
               <td className="p-4">
 
-                {ride.guests?.[0]?.user?.fullName}
+                <div className="space-y-1">
+
+                  {ride.guests?.map((guest) => (
+
+                    <p
+                      key={guest._id}
+                      className="font-medium"
+                    >
+                      {guest.user?.fullName}
+                    </p>
+
+                  ))}
+
+                  <p className="text-xs text-slate-500">
+                    {ride.guests?.length} Guest
+                    {ride.guests?.length > 1 ? "s" : ""}
+                  </p>
+
+                </div>
 
               </td>
 
               <td className="p-4">
 
-                {ride.driver?.user?.fullName}
+                <div>
+
+                  <p className="font-medium">
+                    {ride.driver?.user?.fullName}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    {ride.driver?.status}
+                  </p>
+
+                </div>
 
               </td>
 
-              <td className="p-4 font-semibold">
+              <td className="p-4">
 
-                {ride.status}
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${ride.status === "COMPLETED"
+                    ? "bg-green-100 text-green-700"
+                    : ride.status === "PICKED_UP"
+                      ? "bg-blue-100 text-blue-700"
+                      : ride.status === "ARRIVED"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                >
+                  {ride.status
+                    .replaceAll("_", " ")
+                    .toLowerCase()
+                    .replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
 
               </td>
 
@@ -114,7 +160,8 @@ const Rides = () => {
                       e.target.value
                     )
                   }
-                  className="border rounded px-3 py-2"
+                  disabled={ride.status === "COMPLETED"}
+                  className="border rounded px-3 py-2 disabled:bg-slate-100 disabled:text-slate-500"
                 >
 
                   {STATUS.map((status) => (
@@ -129,6 +176,20 @@ const Rides = () => {
                   ))}
 
                 </select>
+
+              </td>
+
+
+              <td className="p-4">
+
+                <button
+                  onClick={() =>
+                    navigate(`/admin/rides/${ride._id}`)
+                  }
+                  className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800"
+                >
+                  View Details
+                </button>
 
               </td>
 

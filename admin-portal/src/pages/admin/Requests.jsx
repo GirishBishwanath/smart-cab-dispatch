@@ -26,6 +26,30 @@ const Requests = () => {
     }
   };
 
+  const declineRide = async (id) => {
+    const reason = window.prompt(
+      "Reason for declining this request?"
+    );
+
+    if (reason === null) return;
+
+    try {
+      await api.patch(
+        `/ride-requests/${id}/decline`,
+        {
+          reason,
+        }
+      );
+
+      await fetchRequests();
+
+      alert("Ride request declined.");
+
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   useEffect(() => {
     fetchRequests();
 
@@ -104,17 +128,27 @@ const Requests = () => {
 
               <td className="p-4">
 
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    request.status === "PENDING"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : request.status === "APPROVED"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {request.status}
-                </span>
+                <div className="space-y-2">
+
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${request.status === "PENDING"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : request.status === "APPROVED"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                  >
+                    {request.status}
+                  </span>
+
+                  {request.status === "REJECTED" &&
+                    request.rejectionReason && (
+                      <p className="text-xs text-slate-500">
+                        Reason: {request.rejectionReason}
+                      </p>
+                    )}
+
+                </div>
 
               </td>
 
@@ -122,17 +156,34 @@ const Requests = () => {
 
                 {request.status === "PENDING" ? (
 
-                  <button
-                    onClick={() => approveRide(request._id)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg"
-                  >
-                    Approve
-                  </button>
+                  <div className="flex gap-2">
 
-                ) : (
+                    <button
+                      onClick={() => approveRide(request._id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      onClick={() => declineRide(request._id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg"
+                    >
+                      Decline
+                    </button>
+
+                  </div>
+
+                ) : request.status === "APPROVED" ? (
 
                   <span className="text-green-600 font-semibold">
                     Approved
+                  </span>
+
+                ) : (
+
+                  <span className="text-red-600 font-semibold">
+                    Rejected
                   </span>
 
                 )}

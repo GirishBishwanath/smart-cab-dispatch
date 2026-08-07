@@ -75,6 +75,11 @@ const rideSchema = new mongoose.Schema(
 
         assignedAt: Date,
 
+        acceptedAt: {
+            type: Date,
+            default: null,
+        },
+
         cancelReason: {
             type: String,
             default: "",

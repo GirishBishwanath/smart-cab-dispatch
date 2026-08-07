@@ -9,6 +9,7 @@ import {
     createRideRequest,
     getRideRequests,
     approveRideRequest,
+    declineRideRequest,
 } from "../controllers/rideRequest.controller.js";
 
 const router = express.Router();
@@ -31,6 +32,12 @@ router.patch(
     "/:id/approve",
     authorize(ROLES.ADMIN),
     approveRideRequest
+);
+
+router.patch(
+    "/:id/decline",
+    authorize(ROLES.ADMIN),
+    declineRideRequest
 );
 
 export default router;

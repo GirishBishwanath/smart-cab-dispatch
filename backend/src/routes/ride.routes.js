@@ -8,6 +8,9 @@ import { ROLES } from "../utils/constants.js";
 
 import {
   getRides,
+  getRideById,
+  getCurrentDriverRide,
+  acknowledgeRide,
   updateRideStatus,
 } from "../controllers/ride.controller.js";
 
@@ -19,6 +22,24 @@ router.get(
   "/",
   authorize(ROLES.ADMIN, ROLES.DRIVER),
   getRides
+);
+
+router.get(
+  "/current",
+  authorize(ROLES.DRIVER),
+  getCurrentDriverRide
+);
+
+router.get(
+  "/:id",
+  authorize(ROLES.ADMIN, ROLES.DRIVER),
+  getRideById
+);
+
+router.patch(
+  "/:id/acknowledge",
+  authorize(ROLES.DRIVER),
+  acknowledgeRide
 );
 
 router.patch(

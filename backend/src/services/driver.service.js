@@ -3,7 +3,7 @@ import Driver from "../models/Driver.js";
 import Vehicle from "../models/Vehicle.js";
 
 import { hashPassword } from "../utils/hash.js";
-import { ROLES } from "../utils/constants.js";
+import { ROLES, DRIVER_STATUS } from "../utils/constants.js";
 
 import ApiError from "../utils/ApiError.js";
 
@@ -68,7 +68,16 @@ const getDrivers = async () => {
         })
         .lean();
 
-    return drivers;
+    const vehicles = await Vehicle.find().lean();
+
+    return drivers.map((driver) => ({
+        ...driver,
+        vehicle:
+            vehicles.find(
+                (vehicle) =>
+                    vehicle.driver.toString() === driver._id.toString()
+            ) || null,
+    }));
 };
 
 const getDriverById = async (id) => {
@@ -103,10 +112,72 @@ const updateDriver = async (id, data) => {
 
     await user.save();
 
+    const vehicle = await Vehicle.findOne({
+        driver: driver._id,
+    });
+
+    if (vehicle) {
+        vehicle.vehicleNumber =
+            data.vehicleNumber ?? vehicle.vehicleNumber;
+
+        vehicle.model =
+            data.model ?? vehicle.model;
+
+        vehicle.seatCapacity =
+            data.seatCapacity ?? vehicle.seatCapacity;
+
+        vehicle.luggageCapacity =
+            data.luggageCapacity ?? vehicle.luggageCapacity;
+
+        await vehicle.save();
+    }
+
     return await Driver.findById(id).populate({
         path: "user",
         select: "-password -__v",
     });
+};
+
+const updateDriverStatus = async (id, status) => {
+
+    const driver = await Driver.findById(id);
+
+    if (!driver) {
+        throw new ApiError(404, "Driver not found");
+    }
+
+    if (
+        !Object.values(DRIVER_STATUS).includes(status)
+    ) {
+        throw new ApiError(
+            400,
+            "Invalid driver status"
+        );
+    }
+
+    if (
+        status === DRIVER_STATUS.OFFLINE &&
+        driver.currentRide
+    ) {
+        throw new ApiError(
+            400,
+            "Cannot set driver offline while assigned to a ride"
+        );
+    }
+
+    driver.status = status;
+
+    if (status !== DRIVER_STATUS.ON_BREAK) {
+        driver.breakUntil = null;
+    }
+
+    await driver.save();
+
+    return Driver.findById(id)
+        .populate({
+            path: "user",
+            select: "-password -__v",
+        });
 };
 
 const deleteDriver = async (id) => {
@@ -128,9 +199,10 @@ const deleteDriver = async (id) => {
 };
 
 export default {
-  createDriver,
-  getDrivers,
-  getDriverById,
-  updateDriver,
-  deleteDriver,
+    createDriver,
+    getDrivers,
+    getDriverById,
+    updateDriver,
+    updateDriverStatus,
+    deleteDriver,
 };

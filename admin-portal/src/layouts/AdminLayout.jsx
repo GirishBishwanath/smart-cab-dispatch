@@ -1,81 +1,20 @@
-import { NavLink, Outlet } from "react-router-dom";
-import {
-  FaChartPie,
-  FaCar,
-  FaUsers,
-  FaClipboardList,
-  FaRoute,
-} from "react-icons/fa";
+import { Outlet } from "react-router-dom";
 
 import PortalHeader from "../components/layout/PortalHeader.jsx";
-
-const menus = [
-  {
-    title: "Dashboard",
-    icon: <FaChartPie />,
-    path: "/admin/dashboard",
-  },
-  {
-    title: "Drivers",
-    icon: <FaCar />,
-    path: "/admin/drivers",
-  },
-  {
-    title: "Guests",
-    icon: <FaUsers />,
-    path: "/admin/guests",
-  },
-  {
-    title: "Ride Requests",
-    icon: <FaClipboardList />,
-    path: "/admin/ride-requests",
-  },
-  {
-    title: "Rides",
-    icon: <FaRoute />,
-    path: "/admin/rides",
-  },
-];
+import AdminSidebar from "../components/layout/AdminSidebar.jsx";
 
 const AdminLayout = () => {
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="h-screen flex flex-col">
+      <PortalHeader title="Admin Portal" />
 
-      <PortalHeader title="Admin" />
+      <div className="flex flex-1 overflow-hidden">
+        <AdminSidebar />
 
-      <div className="flex">
-
-        <aside className="w-64 bg-white border-r min-h-[calc(100vh-64px)]">
-
-          <nav className="p-4 space-y-2">
-
-            {menus.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-4 py-3 transition ${
-                    isActive
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-700 hover:bg-slate-100"
-                  }`
-                }
-              >
-                {item.icon}
-                {item.title}
-              </NavLink>
-            ))}
-
-          </nav>
-
-        </aside>
-
-        <main className="flex-1 p-8">
+        <main className="flex-1 overflow-y-auto bg-slate-50 p-8">
           <Outlet />
         </main>
-
       </div>
-
     </div>
   );
 };

@@ -7,7 +7,9 @@ import {
 } from "react-icons/fa";
 
 import dashboardService from "../../services/dashboard.service.js";
+import StatCard from "../../components/dashboard/StatCard.jsx";
 import useAuth from "../../hooks/useAuth.js";
+
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -74,46 +76,50 @@ const Dashboard = () => {
   ).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
 
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Welcome, {user.fullName}
+        <h1 className="text-4xl font-bold text-slate-900">
+          Admin Dashboard
         </h1>
 
-        <p className="text-slate-500 mt-1">
-          Smart Cab Dispatch Admin Dashboard
+        <p className="mt-2 text-slate-500">
+          Monitor drivers, guests, ride requests and fleet operations.
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 
-        <Card
+        <StatCard
           icon={<FaCar />}
           title="Drivers"
           value={data.drivers.length}
           subtitle={`${availableDrivers} Available`}
+          color="bg-blue-600"
         />
 
-        <Card
+        <StatCard
           icon={<FaUsers />}
           title="Guests"
           value={data.guests.length}
           subtitle="Registered Guests"
+          color="bg-emerald-600"
         />
 
-        <Card
+        <StatCard
           icon={<FaClipboardList />}
           title="Total Ride Requests"
           value={totalRequests}
-          subtitle="Requests Received"
+          subtitle={`${pendingRequests} Pending Approval`}
+          color="bg-amber-500"
         />
 
-        <Card
+        <StatCard
           icon={<FaRoute />}
-          title="Active Rides"
-          value={activeRides}
+          title="Total Rides"
+          value={data.rides.length}
           subtitle={`${completedRides} Completed`}
+          color="bg-violet-600"
         />
 
       </div>
@@ -188,8 +194,8 @@ const Dashboard = () => {
                 </div>
 
                 <span className={`text-sm font-semibold ${driver.status === "AVAILABLE"
-                    ? "text-green-600"
-                    : "text-orange-500"
+                  ? "text-green-600"
+                  : "text-orange-500"
                   }`}>
                   {driver.status}
                 </span>
@@ -258,34 +264,6 @@ const Dashboard = () => {
   );
 };
 
-const Card = ({ icon, title, value, subtitle }) => (
-  <div className="bg-white rounded-xl shadow border p-6">
 
-    <div className="flex justify-between">
-
-      <div>
-
-        <p className="text-slate-500 text-sm">
-          {title}
-        </p>
-
-        <h2 className="text-3xl font-bold mt-2">
-          {value}
-        </h2>
-
-        <p className="text-sm mt-2 text-slate-400">
-          {subtitle}
-        </p>
-
-      </div>
-
-      <div className="text-3xl text-slate-500">
-        {icon}
-      </div>
-
-    </div>
-
-  </div>
-);
 
 export default Dashboard;
