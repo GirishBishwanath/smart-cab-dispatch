@@ -43,6 +43,20 @@ const getCurrentDriverRide = asyncHandler(
   }
 );
 
+const getDriverRideHistory =
+  asyncHandler(async (req, res) => {
+    const rides =
+      await rideService.getDriverRideHistory(
+        req.user.id
+      );
+
+    return successResponse(
+      res,
+      rides,
+      "Ride history fetched successfully"
+    );
+  });
+
 const acknowledgeRide = asyncHandler(
   async (req, res) => {
 
@@ -64,7 +78,9 @@ const acknowledgeRide = asyncHandler(
 const updateRideStatus = asyncHandler(async (req, res) => {
   const ride = await rideService.updateRideStatus(
     req.params.id,
-    req.body.status
+    req.body.status,
+    req.user.id,
+    req.user.role
   );
 
   return successResponse(
@@ -78,6 +94,7 @@ export {
   getRides,
   getRideById,
   getCurrentDriverRide,
+  getDriverRideHistory,
   acknowledgeRide,
   updateRideStatus,
 };

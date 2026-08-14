@@ -1,36 +1,94 @@
 import express from "express";
 
 import {
-  createDriver,
-  getDrivers,
-  getDriverById,
-  updateDriver,
-  updateDriverStatus,
-  deleteDriver,
+    createDriver,
+    getMyProfile,
+    getDrivers,
+    getDriverById,
+    updateDriver,
+    updateDriverStatus,
+    deleteDriver,
 } from "../controllers/driver.controller.js";
 
 import authenticate from "../middleware/auth.middleware.js";
 
 import authorize from "../middleware/role.middleware.js";
 
-import { ROLES } from "../utils/constants.js";
+import {
+    ROLES,
+} from "../utils/constants.js";
+
 
 const router = express.Router();
 
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
+
 router.use(authenticate);
 
-router.use(authorize(ROLES.ADMIN));
 
-router.post("/", createDriver);
+/*
+|--------------------------------------------------------------------------
+| Driver's own profile
+|--------------------------------------------------------------------------
+*/
 
-router.get("/", getDrivers);
+router.get(
+    "/me",
+    authorize(ROLES.DRIVER),
+    getMyProfile
+);
 
-router.get("/:id", getDriverById);
 
-router.patch("/:id", updateDriver);
+/*
+|--------------------------------------------------------------------------
+| Admin driver management
+|--------------------------------------------------------------------------
+*/
 
-router.patch("/:id/status", updateDriverStatus);
+router.use(
+    authorize(ROLES.ADMIN)
+);
 
-router.delete("/:id", deleteDriver);
+
+router.post(
+    "/",
+    createDriver
+);
+
+
+router.get(
+    "/",
+    getDrivers
+);
+
+
+router.get(
+    "/:id",
+    getDriverById
+);
+
+
+router.patch(
+    "/:id",
+    updateDriver
+);
+
+
+router.patch(
+    "/:id/status",
+    updateDriverStatus
+);
+
+
+router.delete(
+    "/:id",
+    deleteDriver
+);
+
 
 export default router;

@@ -1,16 +1,17 @@
 import Spinner from "./Spinner.jsx";
 
-/**
- * Shown while the persisted session is being revalidated, so protected routes
- * never flash the login screen for an already-authenticated user.
- */
 const FullPageLoader = ({ message = "Loading…" }) => {
-  return (
-    <div className="flex h-full min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-slate-500">
-      <Spinner size="lg" />
-      <p className="text-sm">{message}</p>
-    </div>
-  );
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="flex flex-col items-center gap-3">
+                <Spinner />
+
+                <p className="text-sm text-slate-500">
+                    {message}
+                </p>
+            </div>
+        </div>
+    );
 };
 
 export default FullPageLoader;

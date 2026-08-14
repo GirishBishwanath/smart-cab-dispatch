@@ -69,16 +69,21 @@ const rideSchema = new mongoose.Schema(
 
         scheduledTime: Date,
 
-        startedAt: Date,
-
-        completedAt: Date,
-
         assignedAt: Date,
 
         acceptedAt: {
             type: Date,
             default: null,
         },
+
+        arrivedAt: {
+            type: Date,
+            default: null,
+        },
+
+        startedAt: Date,
+
+        completedAt: Date,
 
         cancelReason: {
             type: String,

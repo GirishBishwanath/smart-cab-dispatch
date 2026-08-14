@@ -2,81 +2,235 @@ import Driver from "../models/Driver.js";
 import Vehicle from "../models/Vehicle.js";
 import Ride from "../models/Ride.js";
 
-import { DRIVER_STATUS, RIDE_STATUS } from "../utils/constants.js";
+import {
+    DRIVER_STATUS,
+    RIDE_STATUS,
+} from "../utils/constants.js";
 
 import ApiError from "../utils/ApiError.js";
 
-const assignDriver = async (rideRequest) => {
-  const drivers = await Driver.find({
-    status: DRIVER_STATUS.AVAILABLE,
-    currentRide: null,
-    $or: [
-      { breakUntil: null },
-      { breakUntil: { $lte: new Date() } }
-    ]
-  });
+import socketService from "./socket.service.js";
 
-  if (drivers.length === 0) {
-    throw new ApiError(400, "No drivers available");
-  }
+/*
+ * ============================================================
+ * POPULATE RIDE
+ * ============================================================
+ *
+ * Always return the complete ride object to the driver portal.
+ */
+const populateRide = (rideId) =>
+    Ride.findById(rideId)
+        .populate({
+            path: "driver",
+            populate: {
+                path: "user",
+                select: "-password -__v",
+            },
+        })
+        .populate("vehicle")
+        .populate({
+            path: "guests",
+            populate: {
+                path: "user",
+                select: "-password -__v",
+            },
+        });
 
-  let selectedDriver = null;
-  let selectedVehicle = null;
+/*
+ * ============================================================
+ * ASSIGN DRIVER
+ * ============================================================
+ */
+const assignDriver = async (
+    rideRequest
+) => {
+    /*
+     * --------------------------------------------------------
+     * Find available drivers
+     * --------------------------------------------------------
+     */
+    const drivers =
+        await Driver.find({
+            status:
+                DRIVER_STATUS.AVAILABLE,
 
-  for (const driver of drivers) {
-    const vehicle = await Vehicle.findOne({
-      driver: driver._id,
-      isActive: true,
-    });
+            currentRide: null,
 
-    if (!vehicle) continue;
+            $or: [
+                {
+                    breakUntil: null,
+                },
+                {
+                    breakUntil: {
+                        $lte: new Date(),
+                    },
+                },
+            ],
+        });
 
     if (
-      vehicle.seatCapacity >= rideRequest.groupSize &&
-      vehicle.luggageCapacity >= rideRequest.luggageCount
+        drivers.length === 0
     ) {
-      selectedDriver = driver;
-      selectedVehicle = vehicle;
-      break;
+        throw new ApiError(
+            400,
+            "No drivers available"
+        );
     }
-  }
 
-  if (!selectedDriver) {
-    throw new ApiError(
-      400,
-      "No vehicle satisfies capacity requirements"
+    /*
+     * --------------------------------------------------------
+     * Find a driver + vehicle capable of handling the request
+     * --------------------------------------------------------
+     */
+    let selectedDriver =
+        null;
+
+    let selectedVehicle =
+        null;
+
+    for (
+        const driver of drivers
+    ) {
+        const vehicle =
+            await Vehicle.findOne({
+                driver: driver._id,
+                isActive: true,
+            });
+
+        if (!vehicle) {
+            continue;
+        }
+
+        const hasEnoughSeats =
+            vehicle.seatCapacity >=
+            rideRequest.groupSize;
+
+        const hasEnoughLuggageSpace =
+            vehicle.luggageCapacity >=
+            rideRequest.luggageCount;
+
+        if (
+            hasEnoughSeats &&
+            hasEnoughLuggageSpace
+        ) {
+            selectedDriver =
+                driver;
+
+            selectedVehicle =
+                vehicle;
+
+            break;
+        }
+    }
+
+    /*
+     * --------------------------------------------------------
+     * No suitable driver/vehicle
+     * --------------------------------------------------------
+     */
+    if (!selectedDriver) {
+        throw new ApiError(
+            400,
+            "No vehicle satisfies capacity requirements"
+        );
+    }
+
+    /*
+     * --------------------------------------------------------
+     * Create assigned ride
+     * --------------------------------------------------------
+     */
+    const ride =
+        await Ride.create({
+            rideRequest:
+                rideRequest._id,
+
+            guests: [
+                rideRequest.guest,
+            ],
+
+            driver:
+                selectedDriver._id,
+
+            vehicle:
+                selectedVehicle._id,
+
+            tripType:
+                rideRequest.tripType,
+
+            pickupLocation:
+                rideRequest.pickupLocation,
+
+            dropLocation:
+                rideRequest.dropLocation,
+
+            assignedAt:
+                new Date(),
+
+            status:
+                RIDE_STATUS.ASSIGNED,
+        });
+
+    /*
+     * --------------------------------------------------------
+     * Update driver state
+     * --------------------------------------------------------
+     */
+    selectedDriver.status =
+        DRIVER_STATUS.ASSIGNED;
+
+    selectedDriver.currentRide =
+        ride._id;
+
+    await selectedDriver.save();
+
+    /*
+     * --------------------------------------------------------
+     * Get fully populated ride
+     * --------------------------------------------------------
+     */
+    const populatedRide =
+        await populateRide(
+            ride._id
+        );
+
+    /*
+     * --------------------------------------------------------
+     * REAL-TIME DRIVER NOTIFICATION
+     * --------------------------------------------------------
+     *
+     * The driver's browser is listening for:
+     *
+     *     ride:assigned
+     *
+     * This immediately causes Dashboard,
+     * Current Ride and Timeline to refresh.
+     */
+    const driverUserId =
+        selectedDriver.user.toString();
+
+    socketService.emitRideAssigned(
+        driverUserId,
+        populatedRide
     );
-  }
 
-  const ride = await Ride.create({
-    rideRequest: rideRequest._id,
+    /*
+     * --------------------------------------------------------
+     * REAL-TIME DRIVER STATUS
+     * --------------------------------------------------------
+     *
+     * Driver changes:
+     *
+     * AVAILABLE → ASSIGNED
+     */
+    socketService.emitDriverStatus(
+        driverUserId,
+        selectedDriver
+    );
 
-    guests: [rideRequest.guest],
-
-    driver: selectedDriver._id,
-
-    vehicle: selectedVehicle._id,
-
-    tripType: rideRequest.tripType,
-
-    pickupLocation: rideRequest.pickupLocation,
-
-    dropLocation: rideRequest.dropLocation,
-
-    assignedAt: new Date(),
-
-    status: RIDE_STATUS.ASSIGNED,
-  });
-
-  selectedDriver.status = DRIVER_STATUS.ASSIGNED;
-
-  selectedDriver.currentRide = ride._id;
-
-  await selectedDriver.save();
-
-  return ride;
+    return populatedRide;
 };
 
 export default {
-  assignDriver,
+    assignDriver,
 };
