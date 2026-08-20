@@ -2,28 +2,29 @@ import api from "./api.js";
 
 const getCurrentRide = async () => {
     const response = await api.get("/rides/current");
-
     return response?.data ?? null;
 };
 
 const getRideById = async (id) => {
     const response = await api.get(`/rides/${id}`);
-
     return response?.data ?? null;
 };
 
 const acknowledgeRide = async (id) => {
+    const response = await api.patch(`/rides/${id}/acknowledge`);
+    return response?.data ?? null;
+};
+
+const declineRide = async (id, reason) => {
     const response = await api.patch(
-        `/rides/${id}/acknowledge`
+        `/rides/${id}/decline`,
+        { reason }
     );
 
     return response?.data ?? null;
 };
 
-const updateRideStatus = async (
-    id,
-    status
-) => {
+const updateRideStatus = async (id, status) => {
     const response = await api.patch(
         `/rides/${id}/status`,
         { status }
@@ -33,32 +34,25 @@ const updateRideStatus = async (
 };
 
 const getRide = async (rideId) => {
-    const response = await api.get(
-        `/rides/${rideId}`
-    );
-
+    const response = await api.get(`/rides/${rideId}`);
     return response;
 };
 
 const getRides = async () => {
     const response = await api.get("/rides");
-
     return response?.data ?? [];
 };
 
 const getRideHistory = async () => {
-    const response =
-        await api.get(
-            "/rides/history"
-        );
-
-    return response.data;
+    const response = await api.get("/rides/history");
+    return response?.data ?? [];
 };
 
 export default {
     getCurrentRide,
     getRideById,
     acknowledgeRide,
+    declineRide,
     updateRideStatus,
     getRide,
     getRides,

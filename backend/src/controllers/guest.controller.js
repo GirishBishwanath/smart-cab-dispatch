@@ -1,7 +1,5 @@
 import guestService from "../services/guest.service.js";
-
 import asyncHandler from "../utils/asyncHandler.js";
-
 import { successResponse } from "../utils/response.js";
 
 const createGuest = asyncHandler(async (req, res) => {
@@ -47,9 +45,7 @@ const getGuests = asyncHandler(async (req, res) => {
 });
 
 const getGuestById = asyncHandler(async (req, res) => {
-  const guest = await guestService.getGuestById(
-    req.params.id
-  );
+  const guest = await guestService.getGuestById(req.params.id);
 
   return successResponse(
     res,
@@ -71,6 +67,29 @@ const updateGuest = asyncHandler(async (req, res) => {
   );
 });
 
+const getMyProfile = asyncHandler(async (req, res) => {
+  const profile = await guestService.getMyProfile(req.user.id);
+
+  return successResponse(
+    res,
+    profile,
+    "Guest profile fetched successfully"
+  );
+});
+
+const updateMyProfile = asyncHandler(async (req, res) => {
+  const profile = await guestService.updateMyProfile(
+    req.user.id,
+    req.body
+  );
+
+  return successResponse(
+    res,
+    profile,
+    "Guest profile updated successfully"
+  );
+});
+
 const deleteGuest = asyncHandler(async (req, res) => {
   await guestService.deleteGuest(req.params.id);
 
@@ -86,5 +105,7 @@ export {
   getGuests,
   getGuestById,
   updateGuest,
+  getMyProfile,
+  updateMyProfile,
   deleteGuest,
 };

@@ -19,16 +19,7 @@ const Input = ({
 
             <input
                 id={id}
-                className={`
-                    w-full
-                    rounded-lg
-                    border
-                    px-3
-                    py-2.5
-                    text-sm
-                    outline-none
-                    transition
-                    ${
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 ${
                         error
                             ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
                             : "border-slate-300 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"

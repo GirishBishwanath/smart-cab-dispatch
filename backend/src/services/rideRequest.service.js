@@ -3,45 +3,8 @@ import Guest from "../models/Guest.js";
 import ApiError from "../utils/ApiError.js";
 import dispatchService from "./dispatch.service.js";
 
-const createRideRequest = async (userId, data) => {
-    const guest = await Guest.findOne({
-        user: userId,
-    });
-
-    if (!guest) {
-        throw new ApiError(404, "Guest not found");
-    }
-
-    const rideRequest = await RideRequest.create({
-        guest: guest._id,
-
-        pickupLocation:
-            data.pickupLocation ?? guest.pickupLocation,
-
-        dropLocation:
-            data.dropLocation ?? guest.dropLocation,
-
-        groupSize:
-            data.groupSize ?? guest.groupSize,
-
-        luggageCount:
-            data.luggageCount ?? guest.luggageCount,
-
-        tripType:
-            data.tripType ?? "ON_DEMAND",
-    });
-
-    return rideRequest.populate({
-        path: "guest",
-        populate: {
-            path: "user",
-            select: "-password -__v",
-        },
-    });
-};
-
-const getRideRequests = async () => {
-    return RideRequest.find()
+const populateRequest = (query) =>
+    query
         .populate({
             path: "guest",
             populate: {
@@ -49,7 +12,45 @@ const getRideRequests = async () => {
                 select: "-password -__v",
             },
         })
-        .sort({ createdAt: -1 });
+        .populate("ride");
+
+const createRideRequest = async (userId, data) => {
+    const guest = await Guest.findOne({ user: userId });
+
+    if (!guest) {
+        throw new ApiError(404, "Guest not found");
+    }
+
+    const rideRequest = await RideRequest.create({
+        guest: guest._id,
+        pickupLocation: data.pickupLocation ?? guest.pickupLocation,
+        dropLocation: data.dropLocation ?? guest.dropLocation,
+        groupSize: data.groupSize ?? guest.groupSize,
+        luggageCount: data.luggageCount ?? guest.luggageCount,
+        tripType: data.tripType ?? "ON_DEMAND",
+    });
+
+    return populateRequest(
+        RideRequest.findById(rideRequest._id)
+    );
+};
+
+const getRideRequests = async () =>
+    populateRequest(
+        RideRequest.find().sort({ createdAt: -1 })
+    );
+
+const getMyRideRequests = async (userId) => {
+    const guest = await Guest.findOne({ user: userId });
+
+    if (!guest) {
+        throw new ApiError(404, "Guest not found");
+    }
+
+    return populateRequest(
+        RideRequest.find({ guest: guest._id })
+            .sort({ createdAt: -1 })
+    );
 };
 
 const approveRideRequest = async (id) => {
@@ -60,19 +61,13 @@ const approveRideRequest = async (id) => {
     }
 
     if (request.status !== "PENDING") {
-        throw new ApiError(
-            400,
-            "Ride request already processed"
-        );
+        throw new ApiError(400, "Ride request already processed");
     }
 
-    const ride =
-        await dispatchService.assignDriver(request);
+    const ride = await dispatchService.assignDriver(request);
 
     request.status = "APPROVED";
-
     request.approvedAt = new Date();
-
     request.ride = ride._id;
 
     await request.save();
@@ -88,32 +83,76 @@ const declineRideRequest = async (id, reason = "") => {
     }
 
     if (request.status !== "PENDING") {
-        throw new ApiError(
-            400,
-            "Ride request already processed"
-        );
+        throw new ApiError(400, "Ride request already processed");
     }
 
     request.status = "REJECTED";
-
     request.rejectionReason = reason;
-
     request.approvedAt = null;
 
     await request.save();
 
-    return request.populate({
-        path: "guest",
-        populate: {
-            path: "user",
-            select: "-password -__v",
-        },
+    return populateRequest(
+        RideRequest.findById(request._id)
+    );
+};
+
+const cancelMyRideRequest = async (userId, id, reason = "" ) => {
+    const guest = await Guest.findOne({
+        user: userId,
     });
+
+    if (!guest) {
+        throw new ApiError(404, "Guest not found");
+    }
+
+    const request = await RideRequest.findById(id);
+
+    if (!request) {
+        throw new ApiError(
+            404,
+            "Ride request not found"
+        );
+    }
+
+    if (!request.guest.equals(guest._id)) {
+        throw new ApiError(
+            403,
+            "You cannot cancel this ride request."
+        );
+    }
+
+    if (request.status !== "PENDING") {
+        throw new ApiError(
+            400,
+            "Only pending ride requests can be cancelled."
+        );
+    }
+
+    if (!reason.trim()) {
+        throw new ApiError(
+            400,
+            "Cancellation reason is required."
+        );
+    }
+
+    request.status = "CANCELLED";
+    request.cancellationReason = reason.trim();
+    request.approvedAt = null;
+    request.ride = null;
+
+    await request.save();
+
+    return populateRequest(
+        RideRequest.findById(request._id)
+    );
 };
 
 export default {
     createRideRequest,
     getRideRequests,
+    getMyRideRequests,
     approveRideRequest,
     declineRideRequest,
+    cancelMyRideRequest,
 };

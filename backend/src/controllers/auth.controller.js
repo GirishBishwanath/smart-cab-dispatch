@@ -3,31 +3,44 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
 
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  const data = await authService.login(
-    email,
-    password
-  );
+    const data = await authService.login(email, password);
 
-  return successResponse(
-    res,
-    data,
-    "Login successful"
-  );
+    return successResponse(res, data, "Login successful");
 });
 
-const getCurrentUser = asyncHandler(
-  async (req, res) => {
+const signup = asyncHandler(async (req, res) => {
+    const data = await authService.signup(req.body);
+
     return successResponse(
-      res,
-      req.user,
-      "User fetched successfully"
+        res,
+        data,
+        "Guest account created successfully"
     );
-  }
+});
+
+const googleLogin = asyncHandler(async (req, res) => {
+    const data = await authService.googleLogin(req.body.idToken);
+
+    return successResponse(
+        res,
+        data,
+        "Google authentication successful"
+    );
+});
+
+const getCurrentUser = asyncHandler(async (req, res) =>
+    successResponse(
+        res,
+        req.user,
+        "User fetched successfully"
+    )
 );
 
 export {
-  login,
-  getCurrentUser,
+    login,
+    signup,
+    googleLogin,
+    getCurrentUser,
 };

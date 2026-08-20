@@ -29,7 +29,7 @@ const StatusBadge = ({ status }) => (
 const PageHeader = ({ count, onAdd }) => (
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-600">Fleet management</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">Fleet management</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Drivers</h1>
             <p className="mt-1.5 text-sm text-slate-500">Manage your driver fleet and live availability.</p>
         </div>

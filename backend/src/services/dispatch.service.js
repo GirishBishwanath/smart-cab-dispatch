@@ -11,13 +11,6 @@ import ApiError from "../utils/ApiError.js";
 
 import socketService from "./socket.service.js";
 
-/*
- * ============================================================
- * POPULATE RIDE
- * ============================================================
- *
- * Always return the complete ride object to the driver portal.
- */
 const populateRide = (rideId) =>
     Ride.findById(rideId)
         .populate({
@@ -36,19 +29,8 @@ const populateRide = (rideId) =>
             },
         });
 
-/*
- * ============================================================
- * ASSIGN DRIVER
- * ============================================================
- */
-const assignDriver = async (
-    rideRequest
-) => {
-    /*
-     * --------------------------------------------------------
-     * Find available drivers
-     * --------------------------------------------------------
-     */
+
+const assignDriver = async (rideRequest) => {
     const drivers =
         await Driver.find({
             status:
@@ -77,16 +59,9 @@ const assignDriver = async (
         );
     }
 
-    /*
-     * --------------------------------------------------------
-     * Find a driver + vehicle capable of handling the request
-     * --------------------------------------------------------
-     */
-    let selectedDriver =
-        null;
+    let selectedDriver = null;
 
-    let selectedVehicle =
-        null;
+    let selectedVehicle = null;
 
     for (
         const driver of drivers
@@ -123,11 +98,6 @@ const assignDriver = async (
         }
     }
 
-    /*
-     * --------------------------------------------------------
-     * No suitable driver/vehicle
-     * --------------------------------------------------------
-     */
     if (!selectedDriver) {
         throw new ApiError(
             400,
@@ -135,94 +105,46 @@ const assignDriver = async (
         );
     }
 
-    /*
-     * --------------------------------------------------------
-     * Create assigned ride
-     * --------------------------------------------------------
-     */
-    const ride =
-        await Ride.create({
-            rideRequest:
-                rideRequest._id,
+    const ride = await Ride.create({
+        rideRequest: rideRequest._id,
 
-            guests: [
-                rideRequest.guest,
-            ],
+        guests: [
+            rideRequest.guest,
+        ],
 
-            driver:
-                selectedDriver._id,
+        driver: selectedDriver._id,
 
-            vehicle:
-                selectedVehicle._id,
+        vehicle: selectedVehicle._id,
 
-            tripType:
-                rideRequest.tripType,
+        tripType: rideRequest.tripType,
 
-            pickupLocation:
-                rideRequest.pickupLocation,
+        pickupLocation: rideRequest.pickupLocation,
 
-            dropLocation:
-                rideRequest.dropLocation,
+        dropLocation: rideRequest.dropLocation,
 
-            assignedAt:
-                new Date(),
+        assignedAt: new Date(),
 
-            status:
-                RIDE_STATUS.ASSIGNED,
-        });
+        status: RIDE_STATUS.ASSIGNED,
+    });
 
-    /*
-     * --------------------------------------------------------
-     * Update driver state
-     * --------------------------------------------------------
-     */
-    selectedDriver.status =
-        DRIVER_STATUS.ASSIGNED;
+    selectedDriver.status = DRIVER_STATUS.ASSIGNED;
 
-    selectedDriver.currentRide =
-        ride._id;
+    selectedDriver.currentRide = ride._id;
 
     await selectedDriver.save();
 
-    /*
-     * --------------------------------------------------------
-     * Get fully populated ride
-     * --------------------------------------------------------
-     */
-    const populatedRide =
-        await populateRide(
-            ride._id
-        );
+    const populatedRide = await populateRide(
+        ride._id
+    );
 
-    /*
-     * --------------------------------------------------------
-     * REAL-TIME DRIVER NOTIFICATION
-     * --------------------------------------------------------
-     *
-     * The driver's browser is listening for:
-     *
-     *     ride:assigned
-     *
-     * This immediately causes Dashboard,
-     * Current Ride and Timeline to refresh.
-     */
-    const driverUserId =
-        selectedDriver.user.toString();
+
+    const driverUserId = selectedDriver.user.toString();
 
     socketService.emitRideAssigned(
         driverUserId,
         populatedRide
     );
 
-    /*
-     * --------------------------------------------------------
-     * REAL-TIME DRIVER STATUS
-     * --------------------------------------------------------
-     *
-     * Driver changes:
-     *
-     * AVAILABLE → ASSIGNED
-     */
     socketService.emitDriverStatus(
         driverUserId,
         selectedDriver

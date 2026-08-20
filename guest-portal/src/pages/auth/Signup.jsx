@@ -1,42 +1,49 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
     FaMapLocationDot,
     FaRoute,
     FaShieldHalved,
-    FaArrowRight,
+    FaArrowLeft,
 } from "react-icons/fa6";
 
 import useAuth from "../../hooks/useAuth.js";
 import GoogleButton from "../../components/auth/GoogleButton.jsx";
-import { roleHomePath, ROUTES } from "../../utils/constants.js";
+import { ROUTES } from "../../utils/constants.js";
 
-const INITIAL_FORM = { email: "", password: "" };
+const INITIAL = {
+    fullName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+};
 
-const FEATURES = [
-    { icon: FaMapLocationDot, title: "Travel", text: "Simple trip management" },
-    { icon: FaRoute, title: "Rides", text: "Follow your journey" },
-    { icon: FaShieldHalved, title: "Secure", text: "Protected guest access" },
-];
-
-const validate = ({ email, password }) => {
+const validate = (form) => {
     const errors = {};
 
-    if (!email.trim()) errors.email = "Email is required";
-    else if (!/^\S+@\S+\.\S+$/.test(email.trim()))
-        errors.email = "Enter a valid email address";
+    if (!form.fullName.trim()) errors.fullName = "Full name is required.";
 
-    if (!password) errors.password = "Password is required";
+    if (!form.email.trim())
+        errors.email = "Email is required.";
+    else if (!/^\S+@\S+\.\S+$/.test(form.email.trim()))
+        errors.email = "Enter a valid email address.";
+
+    if (!form.phone.trim()) errors.phone = "Phone number is required.";
+
+    if (!form.password)
+        errors.password = "Password is required.";
+    else if (form.password.length < 6)
+        errors.password = "Use at least 6 characters.";
+
+    if (form.password !== form.confirmPassword)
+        errors.confirmPassword = "Passwords do not match.";
 
     return errors;
 };
 
-const Logo = ({ size = "md" }) => (
-    <div
-        className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${
-            size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"
-        }`}
-    >
+const Logo = () => (
+    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl">
         <img
             src="/smart-cab-logo.png"
             alt="Smart Cab Dispatch"
@@ -45,91 +52,125 @@ const Logo = ({ size = "md" }) => (
     </div>
 );
 
-const Field = ({ id, label, error, className = "", ...props }) => (
-    <div className="flex min-w-0 flex-col gap-1.5">
+const FEATURES = [
+    { icon: FaMapLocationDot, title: "Travel", text: "Simple trip management" },
+    { icon: FaRoute, title: "Rides", text: "Follow your journey" },
+    { icon: FaShieldHalved, title: "Secure", text: "Protected guest access" },
+];
+
+const Field = ({
+    id,
+    name,
+    label,
+    type = "text",
+    placeholder,
+    value,
+    onChange,
+    error,
+    disabled,
+    className = "",
+    autoComplete,
+}) => (
+    <div className={className}>
         <label htmlFor={id} className="text-sm font-medium text-slate-700">
             {label}
         </label>
 
         <input
             id={id}
+            name={name}
+            type={type}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            autoComplete={autoComplete}
             aria-invalid={Boolean(error)}
-            className={`w-full rounded-lg border px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 ${
+            className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 ${
                 error
-                    ? "border-red-400 focus:border-red-500 focus:ring-red-100"
-                    : "border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
-            } ${className}`}
-            {...props}
+                    ? "border-red-300 focus:ring-4 focus:ring-red-50"
+                    : "border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50"
+            } disabled:cursor-not-allowed disabled:bg-slate-50`}
         />
 
-        {error && <p className="text-xs text-red-600">{error}</p>}
+        {error && (
+            <p className="mt-1.5 text-xs font-medium text-red-600">
+                {error}
+            </p>
+        )}
     </div>
 );
 
-const Login = () => {
-    const { login, googleLogin } = useAuth();
+const Signup = () => {
+    const { signup, googleLogin } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
 
-    const [form, setForm] = useState(INITIAL_FORM);
-    const [fieldErrors, setFieldErrors] = useState({});
+    const [form, setForm] = useState(INITIAL);
+    const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const handleChange = ({ target }) => {
-        setForm((previous) => ({
-            ...previous,
+        setForm((prev) => ({
+            ...prev,
             [target.name]: target.value,
         }));
-        setFieldErrors((previous) => ({
-            ...previous,
+
+        setErrors((prev) => ({
+            ...prev,
             [target.name]: undefined,
         }));
+
         setFormError("");
     };
 
-    const redirect = (user) => {
-        const redirectTo =
-            location.state?.from?.pathname ?? roleHomePath(user.role);
-
-        navigate(redirectTo, { replace: true });
+    const finish = () => {
+        navigate(ROUTES.DASHBOARD, { replace: true });
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        const errors = validate(form);
+        const validation = validate(form);
 
-        if (Object.keys(errors).length) {
-            setFieldErrors(errors);
+        if (Object.keys(validation).length) {
+            setErrors(validation);
             return;
         }
 
-        setSubmitting(true);
-        setFormError("");
-
         try {
-            const user = await login(form.email.trim(), form.password);
-            redirect(user);
+            setSubmitting(true);
+            setFormError("");
+
+            await signup({
+                fullName: form.fullName.trim(),
+                email: form.email.trim(),
+                phone: form.phone.trim(),
+                password: form.password,
+            });
+
+            finish();
         } catch (error) {
             setFormError(
-                error?.message || "Unable to sign in. Please try again."
+                error?.message || "Unable to create your account."
             );
+        } finally {
             setSubmitting(false);
         }
     };
 
     const handleGoogle = async (idToken) => {
-        setSubmitting(true);
-        setFormError("");
-
         try {
-            const user = await googleLogin(idToken);
-            redirect(user);
+            setSubmitting(true);
+            setFormError("");
+
+            await googleLogin(idToken);
+            finish();
         } catch (error) {
             setFormError(
                 error?.message || "Unable to continue with Google."
             );
+        } finally {
             setSubmitting(false);
         }
     };
@@ -144,27 +185,25 @@ const Login = () => {
                         <div className="flex items-center gap-3">
                             <Logo />
                             <div>
-                                <p className="text-base font-bold tracking-tight text-white">
+                                <p className="text-base font-bold text-white">
                                     Smart Cab
                                 </p>
-                                <p className="mt-0.5 text-xs text-slate-400">
+                                <p className="text-xs text-slate-400">
                                     Dispatch platform
                                 </p>
                             </div>
                         </div>
 
-                        <div className="my-auto max-w-[510px]">
+                        <div className="my-auto max-w-[500px]">
                             <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
                                 Guest Travel Portal
                             </p>
-
                             <h1 className="mt-4 text-[42px] font-bold leading-[1.08] tracking-tight text-white xl:text-5xl">
-                                Travel comfortably. Ride confidently.
+                                Your journey starts here.
                             </h1>
-
                             <p className="mt-5 max-w-[480px] text-[15px] leading-7 text-slate-400">
-                                Manage your ride requests, view your assigned cab
-                                and stay informed throughout your journey.
+                                Create your account and manage every Smart Cab
+                                journey from one place.
                             </p>
                         </div>
 
@@ -189,10 +228,10 @@ const Login = () => {
                     </div>
                 </section>
 
-                <section className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-white px-5 py-7 sm:px-8 sm:py-8 lg:px-10 xl:px-12">
+                <section className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-white px-5 py-6 sm:px-8 sm:py-7 lg:px-10 xl:px-12">
                     <div className="w-full max-w-[460px]">
-                        <div className="mb-6 flex items-center gap-3 lg:hidden">
-                            <Logo size="sm" />
+                        <div className="mb-5 flex items-center gap-3 lg:hidden">
+                            <Logo />
                             <div>
                                 <p className="text-base font-bold text-slate-950">
                                     Smart Cab
@@ -203,15 +242,17 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <div className="mb-5">
+                        <div className="mb-4">
                             <p className="text-sm font-semibold text-emerald-600">
                                 Guest Portal
                             </p>
-                            <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950 sm:text-[32px]">
-                                Welcome back
+
+                            <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950">
+                                Create your account
                             </h2>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Sign in to manage your Smart Cab journey.
+
+                            <p className="mt-1.5 text-sm leading-6 text-slate-500">
+                                Sign up to book and manage your rides.
                             </p>
                         </div>
 
@@ -229,32 +270,72 @@ const Login = () => {
                                 </div>
                             )}
 
-                            <div className="space-y-4">
+                            <div className="grid gap-3">
+                                <Field
+                                    id="fullName"
+                                    name="fullName"
+                                    label="Full name"
+                                    placeholder="Your full name"
+                                    value={form.fullName}
+                                    onChange={handleChange}
+                                    error={errors.fullName}
+                                    disabled={submitting}
+                                    autoComplete="name"
+                                />
+
                                 <Field
                                     id="email"
                                     name="email"
                                     type="email"
                                     label="Email address"
-                                    autoComplete="email"
                                     placeholder="guest@smartcab.com"
                                     value={form.email}
                                     onChange={handleChange}
-                                    error={fieldErrors.email}
+                                    error={errors.email}
                                     disabled={submitting}
+                                    autoComplete="email"
                                 />
 
                                 <Field
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    label="Password"
-                                    autoComplete="current-password"
-                                    placeholder="••••••••"
-                                    value={form.password}
+                                    id="phone"
+                                    name="phone"
+                                    type="tel"
+                                    label="Phone number"
+                                    placeholder="+91 98765 43210"
+                                    value={form.phone}
                                     onChange={handleChange}
-                                    error={fieldErrors.password}
+                                    error={errors.phone}
                                     disabled={submitting}
+                                    autoComplete="tel"
                                 />
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <Field
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        label="Password"
+                                        placeholder="••••••••"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        error={errors.password}
+                                        disabled={submitting}
+                                        autoComplete="new-password"
+                                    />
+
+                                    <Field
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type="password"
+                                        label="Confirm password"
+                                        placeholder="••••••••"
+                                        value={form.confirmPassword}
+                                        onChange={handleChange}
+                                        error={errors.confirmPassword}
+                                        disabled={submitting}
+                                        autoComplete="new-password"
+                                    />
+                                </div>
 
                                 <button
                                     type="submit"
@@ -269,8 +350,8 @@ const Login = () => {
                                         />
                                     )}
                                     {submitting
-                                        ? "Signing in…"
-                                        : "Sign in to Guest Portal"}
+                                        ? "Creating account…"
+                                        : "Create Guest Account"}
                                 </button>
                             </div>
 
@@ -289,20 +370,14 @@ const Login = () => {
                         </form>
 
                         <div className="mt-4 text-center text-sm text-slate-500">
-                            New to Smart Cab?{" "}
+                            Already have an account?{" "}
                             <button
                                 type="button"
-                                onClick={() => navigate(ROUTES.SIGNUP)}
+                                onClick={() => navigate(ROUTES.LOGIN)}
                                 className="cursor-pointer font-bold text-emerald-600 hover:text-emerald-700"
                             >
-                                Create an account
-                                <FaArrowRight className="ml-1 inline size-3" />
+                                Sign in
                             </button>
-                        </div>
-
-                        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
-                            <FaShieldHalved className="size-3 text-emerald-500" />
-                            <span>Secure guest access</span>
                         </div>
                     </div>
                 </section>
@@ -311,4 +386,4 @@ const Login = () => {
     );
 };
 
-export default Login;
+export default Signup;

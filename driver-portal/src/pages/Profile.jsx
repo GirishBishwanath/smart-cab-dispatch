@@ -86,14 +86,18 @@ const Profile = () => {
     const driver = profile?.driver;
     const vehicle = profile?.vehicle;
 
-    const initial = (user?.fullName ?? "Driver")
-        .charAt(0)
+    const initials = (user?.fullName || "Driver")
+        .trim()
+        .split(/\s+/)
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
         .toUpperCase();
 
     return (
         <div className="space-y-6">
             <header>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-600">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-600">
                     Driver Account
                 </p>
 
@@ -111,7 +115,7 @@ const Profile = () => {
                     <div className="bg-gradient-to-br from-slate-950 to-slate-800 p-6">
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex size-14 items-center justify-center rounded-2xl bg-white text-xl font-bold text-slate-950 shadow-sm">
-                                {initial}
+                                {initials}
                             </div>
 
                             {driver?.status && <StatusBadge status={driver.status} />}
@@ -134,12 +138,8 @@ const Profile = () => {
 
                 <section className="lg:col-span-2">
                     <div className="mb-4">
-                        <p className="text-xs font-bold uppercase tracking-wider text-sky-600">
-                            Account
-                        </p>
-
                         <h2 className="mt-1 text-lg font-bold text-slate-950">
-                            Contact Information
+                            Account Information
                         </h2>
 
                         <p className="mt-1 text-sm text-slate-500">
