@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 
+import { ALLOWED_ORIGINS } from "./config/env.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import driverRoutes from "./routes/driver.routes.js";
@@ -11,7 +12,18 @@ import errorHandler from "./middleware/error.middleware.js";
 
 const app = express();
 
-app.use(cors());
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error(`Not allowed by CORS: ${origin}`));
+            }
+        },
+        credentials: true,
+    })
+);
 app.use(express.json());
 
 app.get("/", (req, res) =>

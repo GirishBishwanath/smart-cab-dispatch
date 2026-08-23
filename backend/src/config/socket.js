@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 
 import jwt from "jsonwebtoken";
 
-import { JWT_SECRET } from "./env.js";
+import { JWT_SECRET, ALLOWED_ORIGINS } from "./env.js";
 
 import User from "../models/User.js";
 
@@ -20,10 +20,7 @@ const initializeSocket = (
         httpServer,
         {
             cors: {
-                origin: [
-                    "http://localhost:5173",
-                    "http://localhost:5174",
-                ],
+                origin: ALLOWED_ORIGINS,
 
                 methods: [
                     "GET",

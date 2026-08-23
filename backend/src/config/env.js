@@ -8,3 +8,11 @@ export const MONGO_URI = process.env.MONGO_URI;
 export const JWT_EXPIRES_IN = "7d";
 
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+export const ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://smart-cab-dispatch.vercel.app",
+    "https://smart-cab-dispatch-admin.vercel.app",
+    "https://smart-cab-dispatch-guest.vercel.app",
+    "https://smart-cab-dispatch-driver.vercel.app",
+];
