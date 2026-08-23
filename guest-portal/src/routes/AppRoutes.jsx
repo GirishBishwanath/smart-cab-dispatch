@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import GuestLayout from "../layouts/GuestLayout.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
@@ -57,6 +57,16 @@ const AppRoutes = () => (
                 />
             </Route>
         </Route>
+
+        <Route
+            path="/"
+            element={
+                <Navigate
+                    to={ROUTES.DASHBOARD}
+                    replace
+                />
+            }
+        />
 
         <Route
             path="*"
