@@ -57,6 +57,13 @@ const GoogleButton = ({ onSuccess, disabled = false }) => {
 
         const container = containerRef.current;
 
+        window.google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+            callback: (response) =>
+                callbackRef.current?.(response.credential),
+            ux_mode: "popup",
+        });
+
         const render = () => {
             const width = Math.min(
                 container.clientWidth || 360,
@@ -69,13 +76,6 @@ const GoogleButton = ({ onSuccess, disabled = false }) => {
 
             lastWidthRef.current = width;
             container.innerHTML = "";
-
-            window.google.accounts.id.initialize({
-                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-                callback: (response) =>
-                    callbackRef.current?.(response.credential),
-                ux_mode: "popup",
-            });
 
             window.google.accounts.id.renderButton(
                 container,
@@ -108,11 +108,10 @@ const GoogleButton = ({ onSuccess, disabled = false }) => {
     return (
         <div
             ref={containerRef}
-            className={`flex min-h-11 w-full justify-center ${
-                disabled
+            className={`flex min-h-11 w-full justify-center ${disabled
                     ? "pointer-events-none opacity-60"
                     : ""
-            }`}
+                }`}
         />
     );
 };
