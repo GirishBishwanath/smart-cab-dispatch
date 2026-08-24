@@ -4,6 +4,8 @@ export const ROLES = {
     GUEST: "GUEST",
 };
 
+export const LANDING_URL = import.meta.env.VITE_LANDING_URL || "http://localhost:5176";
+
 export const RIDE_STATUS = {
     PENDING: "PENDING",
     ASSIGNED: "ASSIGNED",

@@ -5,11 +5,12 @@ import {
     FaRoute,
     FaShieldHalved,
     FaArrowRight,
+    FaArrowLeft,
 } from "react-icons/fa6";
 
 import useAuth from "../../hooks/useAuth.js";
 import GoogleButton from "../../components/auth/GoogleButton.jsx";
-import { roleHomePath, ROUTES } from "../../utils/constants.js";
+import { roleHomePath, ROUTES, LANDING_URL } from "../../utils/constants.js";
 
 const INITIAL_FORM = { email: "", password: "" };
 
@@ -31,7 +32,7 @@ const validate = ({ email, password }) => {
     return errors;
 };
 
-const Logo = ({ size = "md" }) => (
+const Logo = ({ size = "md", invert = false }) => (
     <div
         className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${
             size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"
@@ -40,7 +41,7 @@ const Logo = ({ size = "md" }) => (
         <img
             src="/smart-cab-logo.png"
             alt="Smart Cab Dispatch"
-            className="h-full w-full object-contain p-1.5 md:brightness-0 md:invert"
+            className={`h-full w-full object-contain p-1.5 ${invert ? "brightness-0 invert" : ""}`}
         />
     </div>
 );
@@ -141,16 +142,23 @@ const Login = () => {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.18),transparent_35%),radial-gradient(circle_at_15%_90%,rgba(5,150,105,0.16),transparent_35%)]" />
 
                     <div className="relative flex w-full flex-col px-10 py-9 xl:px-12 xl:py-10">
-                        <div className="flex items-center gap-3">
-                            <Logo />
-                            <div>
-                                <p className="text-base font-bold tracking-tight text-white">
-                                    Smart Cab
-                                </p>
-                                <p className="mt-0.5 text-xs text-slate-400">
-                                    Dispatch platform
-                                </p>
-                            </div>
+                        <div className="flex items-center justify-between gap-3">
+                            <a href={LANDING_URL} className="flex items-center gap-3">
+                                <Logo invert />
+                                <div>
+                                    <p className="text-base font-bold tracking-tight text-white">
+                                        Smart Cab
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-slate-400">
+                                        Dispatch Platform
+                                    </p>
+                                </div>
+                            </a>
+
+                            <a href={LANDING_URL} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white">
+                                <FaArrowLeft className="size-3" />
+                                Back to home
+                            </a>
                         </div>
 
                         <div className="my-auto max-w-[510px]">
@@ -191,16 +199,23 @@ const Login = () => {
 
                 <section className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-white px-5 py-7 sm:px-8 sm:py-8 lg:px-10 xl:px-12">
                     <div className="w-full max-w-[460px]">
-                        <div className="mb-6 flex items-center gap-3 lg:hidden">
-                            <Logo size="sm" />
-                            <div>
-                                <p className="text-base font-bold text-slate-950">
-                                    Smart Cab
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    Guest Portal
-                                </p>
-                            </div>
+                        <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+                            <a href={LANDING_URL} className="flex items-center gap-3">
+                                <Logo size="sm" />
+                                <div>
+                                    <p className="text-base font-bold text-slate-950">
+                                        Smart Cab
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        Dispatch Platform
+                                    </p>
+                                </div>
+                            </a>
+
+                            <a href={LANDING_URL} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-950">
+                                <FaArrowLeft className="size-3" />
+                                Home
+                            </a>
                         </div>
 
                         <div className="mb-5">

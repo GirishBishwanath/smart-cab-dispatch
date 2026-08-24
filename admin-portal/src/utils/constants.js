@@ -1,16 +1,11 @@
-/**
- * Mirrors backend/src/utils/constants.js — keep the role strings in sync.
- */
 export const ROLES = {
   ADMIN: "ADMIN",
   DRIVER: "DRIVER",
   GUEST: "GUEST",
 };
 
-/**
- * The backend login endpoint authenticates every role against the same route,
- * so the portal decides for itself which roles it is willing to admit.
- */
+export const LANDING_URL = import.meta.env.VITE_LANDING_URL || "http://localhost:5176";
+
 export const PORTAL_ROLES = [ROLES.ADMIN, ROLES.DRIVER];
 
 export const ROUTES = {

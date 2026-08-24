@@ -1,26 +1,9 @@
-// Portal entry points.
-// In production, set these as environment variables at build time
-// (e.g. Vercel project settings) so each portal can be deployed to
-// its own domain/subdomain independently of the landing app.
-//
-// VITE_GUEST_PORTAL_URL, VITE_DRIVER_PORTAL_URL, VITE_ADMIN_PORTAL_URL
-//
-// Local dev fallback ports assume each portal is run with its own
-// `--port` flag (all four Vite apps default to 5173 otherwise):
-//   landing        -> 5176 (this app)
-//   guest-portal    -> 5173
-//   driver-portal   -> 5174
-//   admin-portal    -> 5175
-
 export const PORTAL_URLS = {
   GUEST: import.meta.env.VITE_GUEST_PORTAL_URL || "http://localhost:5173",
   DRIVER: import.meta.env.VITE_DRIVER_PORTAL_URL || "http://localhost:5174",
   ADMIN: import.meta.env.VITE_ADMIN_PORTAL_URL || "http://localhost:5175",
 };
 
-// Role accent colors — must match the portals exactly (from the live
-// auth screens): Admin=blue, Driver=violet, Guest=emerald. Never invent
-// alternate brand colors; this is the product's actual palette.
 export const ROLE_COLORS = {
   ADMIN: {
     text: "text-blue-400",
@@ -62,9 +45,6 @@ export const NAV_LINKS = [
   { label: "Contact", to: ROUTES.CONTACT },
 ];
 
-// The real ride lifecycle, reused here as the landing page's visual
-// signature so the marketing site literally shows the same state
-// machine every portal implements.
 export const RIDE_LIFECYCLE = [
   { key: "PENDING", label: "Requested", style: "bg-slate-100 text-slate-600 ring-1 ring-slate-200" },
   { key: "APPROVED", label: "Approved", style: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },

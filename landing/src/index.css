@@ -28,9 +28,6 @@ body {
     scroll-behavior: auto !important;
   }
 }
-
-/* Logo mark ships blue-outline; invert to white for dark shells,
-   matching the white lockup used across all three portal auth screens. */
 .logo-on-dark {
   filter: brightness(0) invert(1);
 }

@@ -4,13 +4,14 @@ import {
   FaCarSide,
   FaShieldHalved,
   FaChartLine,
+  FaArrowLeft,
 } from "react-icons/fa6";
 
 import Alert from "../../components/ui/Alert.jsx";
 import Button from "../../components/ui/Button.jsx";
 import Input from "../../components/ui/Input.jsx";
 import useAuth from "../../hooks/useAuth.js";
-import { roleHomePath } from "../../utils/constants.js";
+import { roleHomePath, LANDING_URL } from "../../utils/constants.js";
 
 const INITIAL_FORM = {
   email: "",
@@ -51,7 +52,7 @@ const validate = ({ email, password }) => {
   return errors;
 };
 
-const Logo = ({ size = "md" }) => {
+const Logo = ({ size = "md", invert = false }) => {
   const sizes = {
     sm: "size-11 rounded-xl",
     md: "size-14 rounded-2xl",
@@ -63,7 +64,7 @@ const Logo = ({ size = "md" }) => {
       <img
         src="/smart-cab-logo.png"
         alt="Smart Cab Dispatch"
-        className="h-full w-full object-contain p-1.5 md:brightness-0 md:invert"
+        className={`h-full w-full object-contain p-1.5 ${invert ? "brightness-0 invert" : ""}`}
       />
     </div>
   );
@@ -130,23 +131,28 @@ const Login = () => {
   return (
     <div className="min-h-dvh bg-slate-950 px-4 py-4 sm:px-6 sm:py-6 lg:p-6">
       <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-[1180px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:min-h-[calc(100dvh-3rem)] lg:min-h-[calc(100dvh-3rem)] lg:flex-row">
-        {/* Desktop brand panel */}
         <section className="relative hidden overflow-hidden bg-slate-950 lg:flex lg:w-[50%]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(37,99,235,0.18),transparent_35%),radial-gradient(circle_at_15%_90%,rgba(79,70,229,0.14),transparent_35%)]" />
 
           <div className="relative flex w-full flex-col px-10 py-9 xl:px-12 xl:py-10">
-            <div className="flex items-center gap-3">
-              <Logo size="md" />
+            <div className="flex items-center justify-between gap-3">
+              <a href={LANDING_URL} className="flex items-center gap-3">
+                <Logo size="md"  invert/>
+                <div>
+                  <p className="text-base font-bold tracking-tight text-white">
+                    Smart Cab
+                  </p>
 
-              <div>
-                <p className="text-base font-bold tracking-tight text-white">
-                  Smart Cab
-                </p>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    Dispatch Platform
+                  </p>
+                </div>
+              </a>
 
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Dispatch platform
-                </p>
-              </div>
+              <a href={LANDING_URL} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white">
+                <FaArrowLeft className="size-3" />
+                Back to home
+              </a>
             </div>
 
             <div className="mt-auto mb-auto max-w-[510px]">
@@ -187,22 +193,26 @@ const Login = () => {
           </div>
         </section>
 
-        {/* Login panel */}
         <section className="flex flex-1 items-center justify-center bg-white px-5 py-8 sm:px-8 lg:px-10 xl:px-12">
           <div className="w-full max-w-[460px]">
-            {/* Mobile / tablet brand */}
-            <div className="mb-7 flex items-center gap-3 lg:hidden">
-              <Logo size="sm" />
+            <div className="mb-7 flex items-center justify-between gap-3 lg:hidden">
+              <a href={LANDING_URL} className="flex items-center gap-3">
+                <Logo size="sm" />
+                <div>
+                  <p className="text-base font-bold text-slate-950">
+                    Smart Cab
+                  </p>
 
-              <div>
-                <p className="text-base font-bold text-slate-950">
-                  Smart Cab
-                </p>
-
-                <p className="text-xs text-slate-500">
-                  Dispatch platform
-                </p>
-              </div>
+                  <p className="text-xs text-slate-500">
+                    Dispatch Platform
+                  </p>
+                </div>
+              </a>
+              
+              <a href={LANDING_URL} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-950">
+                <FaArrowLeft className="size-3" />
+                Home
+              </a>
             </div>
 
             <div className="mb-6">
