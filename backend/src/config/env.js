@@ -11,6 +11,9 @@ export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 export const ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
     "https://smart-cab-dispatch.vercel.app",
     "https://smart-cab-dispatch-admin.vercel.app",
     "https://smart-cab-dispatch-guest.vercel.app",
