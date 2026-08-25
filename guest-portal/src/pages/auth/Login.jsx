@@ -14,6 +14,8 @@ import { roleHomePath, ROUTES, LANDING_URL } from "../../utils/constants.js";
 
 const INITIAL_FORM = { email: "", password: "" };
 
+const DEMO_CREDENTIALS = { email: "girish@smartcab.com", password: "Guest123" };
+
 const FEATURES = [
     { icon: FaMapLocationDot, title: "Travel", text: "Simple trip management" },
     { icon: FaRoute, title: "Rides", text: "Follow your journey" },
@@ -34,9 +36,8 @@ const validate = ({ email, password }) => {
 
 const Logo = ({ size = "md", invert = false }) => (
     <div
-        className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${
-            size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"
-        }`}
+        className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"
+            }`}
     >
         <img
             src="/smart-cab-logo.png"
@@ -55,11 +56,10 @@ const Field = ({ id, label, error, className = "", ...props }) => (
         <input
             id={id}
             aria-invalid={Boolean(error)}
-            className={`w-full rounded-lg border px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 ${
-                error
+            className={`w-full rounded-lg border px-3.5 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 ${error
                     ? "border-red-400 focus:border-red-500 focus:ring-red-100"
                     : "border-slate-300 focus:border-emerald-600 focus:ring-emerald-100"
-            } ${className}`}
+                } ${className}`}
             {...props}
         />
 
@@ -94,6 +94,12 @@ const Login = () => {
             location.state?.from?.pathname ?? roleHomePath(user.role);
 
         navigate(redirectTo, { replace: true });
+    };
+
+    const handleDemoLogin = () => {
+        setForm(DEMO_CREDENTIALS);
+        setFieldErrors({});
+        setFormError("");
     };
 
     const handleSubmit = async (event) => {
@@ -286,6 +292,16 @@ const Login = () => {
                                     {submitting
                                         ? "Signing in…"
                                         : "Sign in to Guest Portal"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDemoLogin}
+                                    disabled={submitting}
+                                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/60 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span aria-hidden="true">✨</span>
+                                    Use demo credentials
                                 </button>
                             </div>
 

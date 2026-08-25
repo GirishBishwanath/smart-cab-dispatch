@@ -13,10 +13,9 @@ import Input from "../../components/ui/Input.jsx";
 import useAuth from "../../hooks/useAuth.js";
 import { roleHomePath, LANDING_URL } from "../../utils/constants.js";
 
-const INITIAL_FORM = {
-  email: "",
-  password: "",
-};
+const INITIAL_FORM = { email: "", password: "" };
+
+const DEMO_CREDENTIALS = { email: "admin@smartcab.com", password: "Admin123" };
 
 const FEATURES = [
   {
@@ -96,6 +95,12 @@ const Login = () => {
     setFormError("");
   };
 
+  const handleDemoLogin = () => {
+    setForm(DEMO_CREDENTIALS);
+    setFieldErrors({});
+    setFormError("");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -137,7 +142,7 @@ const Login = () => {
           <div className="relative flex w-full flex-col px-10 py-9 xl:px-12 xl:py-10">
             <div className="flex items-center justify-between gap-3">
               <a href={LANDING_URL} className="flex items-center gap-3">
-                <Logo size="md"  invert/>
+                <Logo size="md" invert />
                 <div>
                   <p className="text-base font-bold tracking-tight text-white">
                     Smart Cab
@@ -208,7 +213,7 @@ const Login = () => {
                   </p>
                 </div>
               </a>
-              
+
               <a href={LANDING_URL} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-950">
                 <FaArrowLeft className="size-3" />
                 Home
@@ -276,6 +281,16 @@ const Login = () => {
                     ? "Signing in…"
                     : "Sign in to Admin Portal"}
                 </Button>
+
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={submitting}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-blue-300 bg-blue-50/60 px-4 text-sm font-semibold text-blue-700 transition hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span aria-hidden="true">✨</span>
+                  Use demo credentials
+                </button>
               </div>
             </form>
 

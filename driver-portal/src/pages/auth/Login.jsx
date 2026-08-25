@@ -15,6 +15,8 @@ import { roleHomePath, LANDING_URL } from "../../utils/constants.js";
 
 const INITIAL_FORM = { email: "", password: "" };
 
+const DEMO_CREDENTIALS = { email: "rahul.driver@smartcab.com", password: "Driver123" };
+
 const FEATURES = [
     { icon: FaCarSide, title: "Fleet", text: "Your vehicle & profile" },
     { icon: FaRoute, title: "Rides", text: "Assigned ride control" },
@@ -68,6 +70,12 @@ const Login = () => {
         setFormError("");
     };
 
+    const handleDemoLogin = () => {
+        setForm(DEMO_CREDENTIALS);
+        setFieldErrors({});
+        setFormError("");
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
@@ -114,7 +122,7 @@ const Login = () => {
                                     </p>
                                 </div>
                             </a>
-                            
+
                             <a href={LANDING_URL} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white">
                                 <FaArrowLeft className="size-3" />
                                 Back to home
@@ -171,7 +179,7 @@ const Login = () => {
                                     </p>
                                 </div>
                             </a>
-                            
+
                             <a href={LANDING_URL} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-950">
                                 <FaArrowLeft className="size-3" />
                                 Home
@@ -237,6 +245,16 @@ const Login = () => {
                                 >
                                     {submitting ? "Signing in…" : "Sign in to Driver Portal"}
                                 </Button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDemoLogin}
+                                    disabled={submitting}
+                                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50/60 px-4 text-sm font-semibold text-violet-700 transition hover:border-violet-400 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <span aria-hidden="true">✨</span>
+                                    Use demo credentials
+                                </button>
                             </div>
                         </form>
 
