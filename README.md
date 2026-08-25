@@ -6,7 +6,7 @@
 
 Built end-to-end: backend, database design, real-time layer, and four independent frontends.
 
-[Live Landing Page](smart-cab-dispatch.vercel.app) · [Guest Portal](smart-cab-dispatch-guest.vercel.app) · [Driver Portal](smart-cab-dispatch-driver.vercel.app) · [Admin Portal](smart-cab-dispatch-admin.vercel.app)
+[Live Landing Page](https://smart-cab-dispatch.vercel.app) · [Guest Portal](https://smart-cab-dispatch-guest.vercel.app) · [Driver Portal](https://smart-cab-dispatch-driver.vercel.app) · [Admin Portal](https://smart-cab-dispatch-admin.vercel.app)
 
 </div>
 
@@ -175,7 +175,7 @@ chicken-and-egg env var problems: **[`docs/Deployment.md`](docs/Deployment.md)**
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT — see [`LICENCE`](LICENCE).
 
 ---
 
