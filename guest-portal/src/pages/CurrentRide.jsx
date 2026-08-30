@@ -11,6 +11,9 @@ import bookingService from "../services/booking.service.js";
 import RideCard from "../components/RideCard.jsx";
 import RideRequestCard from "../components/RideRequestCard.jsx";
 import RideStatus from "../components/RideStatus.jsx";
+import LiveMap from "../components/LiveMap.jsx";
+
+const TRACKABLE_STATUSES = ["ASSIGNED", "ARRIVED", "PICKED_UP"];
 
 const Info = ({ label, value }) => (
     <div>
@@ -247,6 +250,10 @@ const CurrentRide = () => {
             </header>
 
             <RideCard ride={ride} />
+
+            {TRACKABLE_STATUSES.includes(ride.status) && (
+                <LiveMap ride={ride} />
+            )}
 
             <section className="rounded-2xl border border-red-100 bg-red-50/50 p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

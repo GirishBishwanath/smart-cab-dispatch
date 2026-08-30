@@ -73,10 +73,23 @@ const emitDriverStatus = (
 };
 
 
+const emitDriverLocation = (
+    userId,
+    payload
+) => {
+    emitToUser(
+        userId,
+        "driver:location",
+        payload
+    );
+};
+
+
 export default {
     emitRideAssigned,
     emitRideAccepted,
     emitRideStatus,
     emitRideCompleted,
     emitDriverStatus,
+    emitDriverLocation,
 };

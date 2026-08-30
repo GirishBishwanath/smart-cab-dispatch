@@ -9,6 +9,8 @@ import {
 
 import ApiError from "../utils/ApiError.js";
 
+import { haversineDistanceKm } from "../utils/geo.js";
+
 import socketService from "./socket.service.js";
 
 const populateRide = (rideId) =>
@@ -59,12 +61,28 @@ const assignDriver = async (rideRequest) => {
         );
     }
 
+    const rankedDrivers = [...drivers].sort(
+        (driverA, driverB) => {
+            const distanceA = haversineDistanceKm(
+                driverA.currentLocation,
+                rideRequest.pickupLocation
+            );
+
+            const distanceB = haversineDistanceKm(
+                driverB.currentLocation,
+                rideRequest.pickupLocation
+            );
+
+            return distanceA - distanceB;
+        }
+    );
+
     let selectedDriver = null;
 
     let selectedVehicle = null;
 
     for (
-        const driver of drivers
+        const driver of rankedDrivers
     ) {
         const vehicle =
             await Vehicle.findOne({

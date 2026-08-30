@@ -5,14 +5,20 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET, ALLOWED_ORIGINS } from "./env.js";
 
 import User from "../models/User.js";
+import Driver from "../models/Driver.js";
+import Ride from "../models/Ride.js";
+import "../models/Guest.js";
+
+import { ROLES, RIDE_STATUS } from "../utils/constants.js";
 
 let io = null;
 
-/*
- * ============================================================
- * INITIALIZE SOCKET.IO
- * ============================================================
- */
+const TRACKABLE_RIDE_STATUSES = [
+    RIDE_STATUS.ASSIGNED,
+    RIDE_STATUS.ARRIVED,
+    RIDE_STATUS.PICKED_UP,
+];
+
 const initializeSocket = (
     httpServer
 ) => {
@@ -35,13 +41,6 @@ const initializeSocket = (
         }
     );
 
-    /*
-     * ========================================================
-     * SOCKET AUTHENTICATION
-     * ========================================================
-     *
-     * Uses the same JWT as REST authentication.
-     */
     io.use(
         async (
             socket,
@@ -83,10 +82,6 @@ const initializeSocket = (
                     );
                 }
 
-                /*
-                 * Store authenticated user
-                 * on the socket.
-                 */
                 socket.user = {
                     id: user._id.toString(),
                     fullName:
@@ -113,11 +108,6 @@ const initializeSocket = (
         }
     );
 
-    /*
-     * ========================================================
-     * CONNECTION
-     * ========================================================
-     */
     io.on(
         "connection",
         (socket) => {
@@ -128,18 +118,10 @@ const initializeSocket = (
                 `🔌 Socket connected: ${userId}`
             );
 
-            /*
-             * Private user room.
-             *
-             * All ride events are sent here.
-             */
             socket.join(
                 `user:${userId}`
             );
 
-            /*
-             * Driver-specific room.
-             */
             if (
                 socket.user.role ===
                 "DRIVER"
@@ -149,10 +131,13 @@ const initializeSocket = (
                 );
             }
 
-            /*
-             * Tell frontend that the
-             * authenticated socket is ready.
-             */
+            if (
+                socket.user.role ===
+                ROLES.ADMIN
+            ) {
+                socket.join("admins");
+            }
+
             socket.emit(
                 "socket:connected",
                 {
@@ -161,9 +146,117 @@ const initializeSocket = (
                 }
             );
 
-            /*
-             * Disconnect.
-             */
+            socket.on(
+                "driver:location",
+                async (payload) => {
+                    try {
+                        if (
+                            socket.user.role !==
+                            ROLES.DRIVER
+                        ) {
+                            return;
+                        }
+
+                        const {
+                            rideId,
+                            latitude,
+                            longitude,
+                        } = payload || {};
+
+                        if (
+                            typeof latitude !== "number" ||
+                            typeof longitude !== "number"
+                        ) {
+                            return;
+                        }
+
+                        const driver =
+                            await Driver.findOne({
+                                user: userId,
+                            });
+
+                        if (!driver) {
+                            return;
+                        }
+
+                        driver.currentLocation = {
+                            latitude,
+                            longitude,
+                        };
+
+                        await driver.save();
+
+                        const targetRideId =
+                            rideId ||
+                            driver.currentRide?.toString();
+
+                        if (!targetRideId) {
+                            return;
+                        }
+
+                        if (
+                            driver.currentRide?.toString() !==
+                            targetRideId.toString()
+                        ) {
+                            return;
+                        }
+
+                        const ride =
+                            await Ride.findById(
+                                targetRideId
+                            ).populate({
+                                path: "guests",
+                                select: "user",
+                            });
+
+                        if (
+                            !ride ||
+                            !TRACKABLE_RIDE_STATUSES.includes(
+                                ride.status
+                            )
+                        ) {
+                            return;
+                        }
+
+                        const locationPayload = {
+                            rideId: ride._id.toString(),
+                            latitude,
+                            longitude,
+                            updatedAt: new Date().toISOString(),
+                        };
+
+                        const guestUserIds = (
+                            ride.guests || []
+                        )
+                            .map((guest) =>
+                                guest?.user?.toString()
+                            )
+                            .filter(Boolean);
+
+                        guestUserIds.forEach(
+                            (guestUserId) => {
+                                io.to(
+                                    `user:${guestUserId}`
+                                ).emit(
+                                    "driver:location",
+                                    locationPayload
+                                );
+                            }
+                        );
+
+                        io.to("admins").emit(
+                            "driver:location",
+                            locationPayload
+                        );
+                    } catch (error) {
+                        console.error(
+                            "Failed to process driver:location:",
+                            error.message
+                        );
+                    }
+                }
+            );
+
             socket.on(
                 "disconnect",
                 (reason) => {
@@ -178,11 +271,6 @@ const initializeSocket = (
     return io;
 };
 
-/*
- * ============================================================
- * GET SOCKET.IO INSTANCE
- * ============================================================
- */
 const getIO = () => {
     if (!io) {
         throw new Error(

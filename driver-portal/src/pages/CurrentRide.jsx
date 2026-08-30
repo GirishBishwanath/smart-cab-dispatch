@@ -5,12 +5,19 @@ import rideService from "../services/ride.service.js";
 import Timeline from "../components/Timeline.jsx";
 import RideCard from "../components/RideCard.jsx";
 import RideActionCard from "../components/RideActionCard.jsx";
+import LiveMap from "../components/LiveMap.jsx";
 import socketService from "../services/socket.service.js";
+import useLocationBroadcaster from "../hooks/useLocationBroadcaster.js";
 
 const CurrentRide = () => {
     const [ride, setRide] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const {
+        position: livePosition,
+        error: locationError,
+    } = useLocationBroadcaster(ride);
 
     const fetchRide = useCallback(async () => {
         try {
@@ -163,6 +170,12 @@ const CurrentRide = () => {
                     onUpdated={handleUpdated}
                 />
             </div>
+
+            <LiveMap
+                ride={ride}
+                position={livePosition}
+                locationError={locationError}
+            />
 
             {/* Timeline */}
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
