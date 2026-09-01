@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
     FaCarSide,
     FaLocationDot,
-    FaPhone,
     FaRoute,
 } from "react-icons/fa6";
 
@@ -10,10 +9,10 @@ import rideService from "../services/ride.service.js";
 import bookingService from "../services/booking.service.js";
 import RideCard from "../components/RideCard.jsx";
 import RideRequestCard from "../components/RideRequestCard.jsx";
-import RideStatus from "../components/RideStatus.jsx";
 import LiveMap from "../components/LiveMap.jsx";
 
 const TRACKABLE_STATUSES = ["ASSIGNED", "ARRIVED", "PICKED_UP"];
+const POLL_INTERVAL_MS = 5000;
 
 const Info = ({ label, value }) => (
     <div>
@@ -64,9 +63,22 @@ const CurrentRide = () => {
     }, []);
 
     useEffect(() => {
-        load();
-        const interval = setInterval(load, 5000);
-        return () => clearInterval(interval);
+        let cancelled = false;
+
+        const run = () => {
+            if (!cancelled) {
+                load();
+            }
+        };
+
+        run();
+
+        const interval = setInterval(run, POLL_INTERVAL_MS);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [load]);
 
     const cancelRequest = async () => {
@@ -131,6 +143,17 @@ const CurrentRide = () => {
         }
     };
 
+    const showRequest =
+        !ride &&
+        request &&
+        !request.ride &&
+        [
+            "PENDING",
+            "APPROVED",
+            "REJECTED",
+            "DRIVER_DECLINED",
+        ].includes(request.status);
+
     if (loading) {
         return (
             <div className="space-y-5">
@@ -148,16 +171,7 @@ const CurrentRide = () => {
         );
     }
 
-    if (
-        !ride &&
-        request &&
-        [
-            "PENDING",
-            "APPROVED",
-            "REJECTED",
-            "DRIVER_DECLINED",
-        ].includes(request.status)
-    ) {
+    if (showRequest) {
         return (
             <div className="space-y-6">
                 <header>
@@ -217,7 +231,6 @@ const CurrentRide = () => {
         );
     }
 
-    const guest = ride.guests?.[0];
     const driver = ride.driver?.user;
     const vehicle = ride.vehicle;
 
@@ -317,8 +330,8 @@ const CurrentRide = () => {
                     </div>
 
                     <div className="mt-6 grid gap-5 grid-cols-2">
-                        <Info label="Passengers" value={guest?.groupSize} />
-                        <Info label="Luggage" value={guest?.luggageCount} />
+                        <Info label="Passengers" value={ride?.rideRequest?.groupSize} />
+                        <Info label="Luggage" value={ride?.rideRequest?.luggageCount} />
                         <Info label="Estimated distance" value={`${ride.estimatedDistance || 0} km`} />
                         <Info label="Estimated duration" value={`${ride.estimatedDuration || 0} min`} />
                     </div>

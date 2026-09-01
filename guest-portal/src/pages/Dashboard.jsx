@@ -13,8 +13,9 @@ import rideService from "../services/ride.service.js";
 import bookingService from "../services/booking.service.js";
 import RideCard from "../components/RideCard.jsx";
 import RideRequestCard from "../components/RideRequestCard.jsx";
-import RideStatus from "../components/RideStatus.jsx";
 import { ROUTES } from "../utils/constants.js";
+
+const POLL_INTERVAL_MS = 5000;
 
 const QuickAction = ({
     icon: Icon,
@@ -82,10 +83,22 @@ const Dashboard = () => {
     }, []);
 
     useEffect(() => {
-        load();
+        let cancelled = false;
 
-        const interval = setInterval(load, 5000);
-        return () => clearInterval(interval);
+        const run = () => {
+            if (!cancelled) {
+                load();
+            }
+        };
+
+        run();
+
+        const interval = setInterval(run, POLL_INTERVAL_MS);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [load]);
 
     const cancelRequest = async () => {
@@ -130,9 +143,12 @@ const Dashboard = () => {
     const showRequest =
         !ride &&
         request &&
+        !request.ride &&
         ["PENDING", "APPROVED", "REJECTED"].includes(
             request.status
         );
+
+    const showEmptyState = !loading && !ride && !showRequest;
 
     return (
         <div className="space-y-6">
@@ -152,10 +168,7 @@ const Dashboard = () => {
                         </p>
                     </div>
 
-                    {!request ||
-                        ["COMPLETED", "CANCELLED", "REJECTED"].includes(
-                            request.status
-                        ) ? (
+                    {showEmptyState && (
                         <button
                             type="button"
                             onClick={() =>
@@ -168,7 +181,7 @@ const Dashboard = () => {
                             Book a ride
                             <FaArrowRight className="size-3" />
                         </button>
-                    ) : null}
+                    )}
                 </div>
             </section>
 
