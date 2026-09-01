@@ -37,8 +37,8 @@ const Detail = ({ label, value, secondary, children }) => (
 
 const RideCard = ({ ride }) => {
     const guest = ride?.guests?.[0];
-    const passengers = guest?.groupSize ?? 0;
-    const luggage = guest?.luggageCount ?? 0;
+    const passengers = ride?.rideRequest?.groupSize ?? guest?.groupSize ?? 0;
+    const luggage = ride?.rideRequest?.luggageCount ?? guest?.luggageCount ?? 0;
 
     return (
         <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

@@ -1,5 +1,6 @@
 import RideRequest from "../models/RideRequest.js";
 import Guest from "../models/Guest.js";
+import Ride from "../models/Ride.js";
 import ApiError from "../utils/ApiError.js";
 import dispatchService from "./dispatch.service.js";
 
@@ -19,6 +20,38 @@ const createRideRequest = async (userId, data) => {
 
     if (!guest) {
         throw new ApiError(404, "Guest not found");
+    }
+
+    const activeRide = await Ride.findOne({
+        guests: guest._id,
+        status: {
+            $in: [
+                "ASSIGNED",
+                "ARRIVED",
+                "PICKED_UP",
+            ],
+        },
+    }).lean();
+
+    if (activeRide) {
+        throw new ApiError(
+            409,
+            "You already have an active ride. Please complete or cancel it before requesting another ride."
+        );
+    }
+
+    const activeRequest = await RideRequest.findOne({
+        guest: guest._id,
+        status: {
+            $in: ["PENDING", "APPROVED"],
+        },
+    }).lean();
+
+    if (activeRequest) {
+        throw new ApiError(
+            409,
+            "You already have an active ride request. Please wait for it to be completed, cancelled, or declined before requesting another ride."
+        );
     }
 
     const rideRequest = await RideRequest.create({

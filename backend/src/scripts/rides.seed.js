@@ -4,7 +4,7 @@ import Driver from "../models/Driver.js";
 import Vehicle from "../models/Vehicle.js";
 import RideRequest from "../models/RideRequest.js";
 import Ride from "../models/Ride.js";
-import { DRIVER_STATUS, RIDE_STATUS } from "../utils/constants.js";
+import { RIDE_STATUS } from "../utils/constants.js";
 
 export const seedRides = async () => {
   const guestUser = await User.findOne({ email: "girish@smartcab.com" });
@@ -46,16 +46,13 @@ export const seedRides = async () => {
     tripType: "ON_DEMAND",
     pickupLocation: guest.pickupLocation,
     dropLocation: guest.dropLocation,
-    status: RIDE_STATUS.ASSIGNED,
+    status: RIDE_STATUS.COMPLETED,
     assignedAt: new Date(),
+    completedAt: new Date(),
   });
 
   rideRequest.ride = ride._id;
   await rideRequest.save();
 
-  driver.status = DRIVER_STATUS.ASSIGNED;
-  driver.currentRide = ride._id;
-  await driver.save();
-
-  console.log("✅ Demo Ride Seeded (Hotel Taj → Airport, ASSIGNED)");
+  console.log("✅ Demo Ride Seeded (Hotel Taj → Airport, COMPLETED)");
 };

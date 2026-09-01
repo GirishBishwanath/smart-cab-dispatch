@@ -317,6 +317,7 @@ const getCurrentDriverRide = async (userId) => {
             ],
         },
     })
+        .sort({ createdAt: -1 })
         .populate({
             path: "driver",
             populate: {
@@ -325,6 +326,7 @@ const getCurrentDriverRide = async (userId) => {
             },
         })
         .populate("vehicle")
+        .populate("rideRequest")
         .populate({
             path: "guests",
             populate: {
@@ -356,6 +358,7 @@ const getDriverRideHistory = async (userId) => {
             },
         })
         .populate("vehicle")
+        .populate("rideRequest")
         .populate({
             path: "guests",
             populate: {
@@ -386,6 +389,7 @@ const getCurrentGuestRide = async (userId) => {
             ],
         },
     })
+        .sort({ createdAt: -1 })
         .populate({
             path: "driver",
             populate: {
@@ -394,6 +398,7 @@ const getCurrentGuestRide = async (userId) => {
             },
         })
         .populate("vehicle")
+        .populate("rideRequest")
         .populate({
             path: "guests",
             populate: {
@@ -425,6 +430,7 @@ const getGuestRideHistory = async (userId) => {
             },
         })
         .populate("vehicle")
+        .populate("rideRequest")
         .populate({
             path: "guests",
             populate: {

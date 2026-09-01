@@ -61,4 +61,14 @@ const rideRequestSchema = new mongoose.Schema({
     notes: { type: String, default: "" },
 }, { timestamps: true });
 
+rideRequestSchema.index(
+    { guest: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            status: { $in: ["PENDING", "APPROVED"] },
+        },
+    }
+);
+
 export default mongoose.model("RideRequest", rideRequestSchema);
