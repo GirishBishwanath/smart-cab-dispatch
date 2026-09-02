@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-    FaCarSide,
-    FaLocationDot,
-    FaRoute,
-} from "react-icons/fa6";
+import { FaCarSide, FaLocationDot, FaRoute } from "react-icons/fa6";
 
 import rideService from "../services/ride.service.js";
 import bookingService from "../services/booking.service.js";
@@ -16,12 +12,8 @@ const POLL_INTERVAL_MS = 5000;
 
 const Info = ({ label, value }) => (
     <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {label}
-        </p>
-        <p className="mt-1 text-sm font-semibold text-slate-900">
-            {value ?? "—"}
-        </p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-900">{value ?? "—"}</p>
     </div>
 );
 
@@ -40,28 +32,17 @@ const CurrentRide = () => {
         try {
             setError("");
 
-            const [rideResult, requestsResult] =
-                await Promise.all([
-                    rideService.getCurrentRide().catch((err) =>
-                        err?.status === 404
-                            ? null
-                            : Promise.reject(err)
-                    ),
-                    bookingService.getMyRideRequests(),
-                ]);
+            const [rideResult, requestsResult] = await Promise.all([
+                rideService.getCurrentRide().catch((err) =>
+                    err?.status === 404 ? null : Promise.reject(err)
+                ),
+                bookingService.getMyRideRequests(),
+            ]);
 
             setRide(rideResult ?? null);
-
-            setRequest(
-                Array.isArray(requestsResult)
-                    ? requestsResult[0] ?? null
-                    : null
-            );
+            setRequest(Array.isArray(requestsResult) ? requestsResult[0] ?? null : null);
         } catch (err) {
-            setError(
-                err?.message ??
-                "Unable to load your trip information."
-            );
+            setError(err?.message ?? "Unable to load your trip information.");
         } finally {
             setLoading(false);
         }
@@ -76,10 +57,7 @@ const CurrentRide = () => {
 
         run();
 
-        const interval = setInterval(
-            run,
-            POLL_INTERVAL_MS
-        );
+        const interval = setInterval(run, POLL_INTERVAL_MS);
 
         return () => {
             cancelled = true;
@@ -89,19 +67,14 @@ const CurrentRide = () => {
 
     useEffect(() => {
         if (!ride) {
-            setLiveMetrics({
-                distanceKm: null,
-                etaMinutes: null,
-            });
+            setLiveMetrics({ distanceKm: null, etaMinutes: null });
         }
     }, [ride]);
 
     const cancelRequest = async () => {
         if (!request?._id) return;
 
-        const reason = window.prompt(
-            "Why are you cancelling this ride request?"
-        );
+        const reason = window.prompt("Why are you cancelling this ride request?");
 
         if (reason === null) return;
 
@@ -112,18 +85,10 @@ const CurrentRide = () => {
 
         try {
             setCancelling(true);
-
-            await bookingService.cancelRideRequest(
-                request._id,
-                reason.trim()
-            );
-
+            await bookingService.cancelRideRequest(request._id, reason.trim());
             await load();
         } catch (err) {
-            setError(
-                err?.message ??
-                "Unable to cancel the ride request."
-            );
+            setError(err?.message ?? "Unable to cancel the ride request.");
         } finally {
             setCancelling(false);
         }
@@ -132,9 +97,7 @@ const CurrentRide = () => {
     const cancelRide = async () => {
         if (!ride?._id) return;
 
-        const reason = window.prompt(
-            "Why are you cancelling this ride?"
-        );
+        const reason = window.prompt("Why are you cancelling this ride?");
 
         if (reason === null) return;
 
@@ -145,18 +108,10 @@ const CurrentRide = () => {
 
         try {
             setCancelling(true);
-
-            await rideService.cancelRide(
-                ride._id,
-                reason.trim()
-            );
-
+            await rideService.cancelRide(ride._id, reason.trim());
             await load();
         } catch (err) {
-            setError(
-                err?.message ??
-                "Unable to cancel the ride."
-            );
+            setError(err?.message ?? "Unable to cancel the ride.");
         } finally {
             setCancelling(false);
         }
@@ -189,14 +144,10 @@ const CurrentRide = () => {
         return (
             <div className="space-y-6">
                 <header>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">
-                        Ride Request
-                    </p>
-
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Ride Request</p>
                     <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
                         Your Request
                     </h1>
-
                     <p className="mt-1.5 text-sm text-slate-500">
                         Track the status of your submitted ride request.
                     </p>
@@ -204,11 +155,7 @@ const CurrentRide = () => {
 
                 <RideRequestCard
                     request={request}
-                    onCancel={
-                        request.status === "PENDING"
-                            ? cancelRequest
-                            : undefined
-                    }
+                    onCancel={request.status === "PENDING" ? cancelRequest : undefined}
                     cancelling={cancelling}
                 />
             </div>
@@ -219,10 +166,7 @@ const CurrentRide = () => {
         return (
             <div className="space-y-6">
                 <header>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-600">
-                        Active Trip
-                    </p>
-
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-600">Active Trip</p>
                     <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
                         Current Ride
                     </h1>
@@ -232,11 +176,7 @@ const CurrentRide = () => {
                     <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
                         <FaLocationDot className="size-5" />
                     </div>
-
-                    <h2 className="mt-4 text-lg font-bold text-slate-950">
-                        No current ride
-                    </h2>
-
+                    <h2 className="mt-4 text-lg font-bold text-slate-950">No current ride</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
                         You currently have no active ride or pending request.
                     </p>
@@ -266,14 +206,10 @@ const CurrentRide = () => {
         <div className="space-y-6">
             <header className="flex items-center justify-between">
                 <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">
-                        Active Trip
-                    </p>
-
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Active Trip</p>
                     <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
                         Current Ride
                     </h1>
-
                     <p className="mt-1.5 text-sm text-slate-500">
                         Follow your active passenger trip.
                     </p>
@@ -284,29 +220,20 @@ const CurrentRide = () => {
                         <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                         <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                     </span>
-
-                    <span className="text-[11px] font-bold text-emerald-700">
-                        Live updates
-                    </span>
+                    <span className="text-[11px] font-bold text-emerald-700">Live updates</span>
                 </div>
             </header>
 
             <RideCard ride={ride} />
 
             {TRACKABLE_STATUSES.includes(ride.status) && (
-                <LiveMap
-                    ride={ride}
-                    onMetricsChange={setLiveMetrics}
-                />
+                <LiveMap ride={ride} onMetricsChange={setLiveMetrics} />
             )}
 
             <section className="rounded-2xl border border-red-100 bg-red-50/50 p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="text-sm font-bold text-slate-900">
-                            Need to cancel this ride?
-                        </p>
-
+                        <p className="text-sm font-bold text-slate-900">Need to cancel this ride?</p>
                         <p className="mt-1 text-xs text-slate-500">
                             Cancellation requires a reason and will notify dispatch.
                         </p>
@@ -315,15 +242,10 @@ const CurrentRide = () => {
                     <button
                         type="button"
                         onClick={cancelRide}
-                        disabled={
-                            cancelling ||
-                            ride.status === "PICKED_UP"
-                        }
+                        disabled={cancelling || ride.status === "PICKED_UP"}
                         className="rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {cancelling
-                            ? "Cancelling..."
-                            : "Cancel Ride"}
+                        {cancelling ? "Cancelling..." : "Cancel Ride"}
                     </button>
                 </div>
             </section>
@@ -334,35 +256,17 @@ const CurrentRide = () => {
                         <div className="flex size-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
                             <FaCarSide className="size-4" />
                         </div>
-
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-sky-600">
-                                Driver
-                            </p>
-
-                            <h2 className="mt-1 text-base font-bold text-slate-950">
-                                Driver information
-                            </h2>
+                            <p className="text-xs font-bold uppercase tracking-wider text-sky-600">Driver</p>
+                            <h2 className="mt-1 text-base font-bold text-slate-950">Driver information</h2>
                         </div>
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 gap-5">
-                        <Info
-                            label="Name"
-                            value={driver?.fullName || "Not assigned"}
-                        />
-                        <Info
-                            label="Phone"
-                            value={driver?.phone || "Not available"}
-                        />
-                        <Info
-                            label="Vehicle"
-                            value={vehicle?.vehicleNumber || "Not assigned"}
-                        />
-                        <Info
-                            label="Model"
-                            value={vehicle?.model || "—"}
-                        />
+                        <Info label="Name" value={driver?.fullName || "Not assigned"} />
+                        <Info label="Phone" value={driver?.phone || "Not available"} />
+                        <Info label="Vehicle" value={vehicle?.vehicleNumber || "Not assigned"} />
+                        <Info label="Model" value={vehicle?.model || "—"} />
                     </div>
                 </section>
 
@@ -371,38 +275,17 @@ const CurrentRide = () => {
                         <div className="flex size-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
                             <FaRoute className="size-4" />
                         </div>
-
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-violet-600">
-                                Journey
-                            </p>
-
-                            <h2 className="mt-1 text-base font-bold text-slate-950">
-                                Trip information
-                            </h2>
+                            <p className="text-xs font-bold uppercase tracking-wider text-violet-600">Journey</p>
+                            <h2 className="mt-1 text-base font-bold text-slate-950">Trip information</h2>
                         </div>
                     </div>
 
                     <div className="mt-6 grid grid-cols-2 gap-5">
-                        <Info
-                            label="Passengers"
-                            value={ride.rideRequest?.groupSize}
-                        />
-
-                        <Info
-                            label="Luggage"
-                            value={ride.rideRequest?.luggageCount}
-                        />
-
-                        <Info
-                            label="Distance to target"
-                            value={distanceValue}
-                        />
-
-                        <Info
-                            label="ETA"
-                            value={durationValue}
-                        />
+                        <Info label="Passengers" value={ride.rideRequest?.groupSize} />
+                        <Info label="Luggage" value={ride.rideRequest?.luggageCount} />
+                        <Info label="Distance to target" value={distanceValue} />
+                        <Info label="ETA" value={durationValue} />
                     </div>
                 </section>
             </div>

@@ -14,6 +14,7 @@ import {
     declineRide,
     cancelGuestRide,
     updateRideStatus,
+    getRideRoute,
 } from "../controllers/ride.controller.js";
 
 const router = express.Router();
@@ -72,6 +73,16 @@ router.patch(
     "/:id/status",
     authorize(ROLES.ADMIN, ROLES.DRIVER),
     updateRideStatus
+);
+
+router.get(
+    "/:id/route",
+    authorize(
+        ROLES.ADMIN,
+        ROLES.DRIVER,
+        ROLES.GUEST
+    ),
+    getRideRoute
 );
 
 router.get(

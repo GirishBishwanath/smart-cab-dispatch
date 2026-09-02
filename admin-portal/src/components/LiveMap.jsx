@@ -1,8 +1,4 @@
-import {
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     MapContainer,
     Marker,
@@ -16,12 +12,10 @@ import "leaflet/dist/leaflet.css";
 import { FaLocationDot } from "react-icons/fa6";
 
 import useSocket from "../hooks/useSocket.js";
-import {
-    estimateEtaMinutes,
-    haversineDistanceKm,
-} from "../utils/geo.js";
+import routeService from "../services/route.service.js";
 
 const DEFAULT_CENTER = [26.2389, 73.0243];
+const ACTIVE_STATUSES = ["ASSIGNED", "ARRIVED", "PICKED_UP"];
 
 const buildIcon = (color, pulse = false) =>
     L.divIcon({
@@ -54,49 +48,41 @@ const Recenter = ({ position }) => {
 
     useEffect(() => {
         if (position) {
-            map.setView(position, Math.max(map.getZoom(), 14), {
-                animate: true,
-            });
+            map.setView(position, Math.max(map.getZoom(), 14), { animate: true });
         }
     }, [position, map]);
 
     return null;
 };
 
-const LiveMap = ({ ride }) => {
+const isValidPoint = (point) =>
+    Number.isFinite(Number(point?.latitude)) &&
+    Number.isFinite(Number(point?.longitude));
+
+const LiveMap = ({ ride, onMetricsChange }) => {
     const initial = ride?.driver?.currentLocation;
 
-    const [driverPosition, setDriverPosition] =
-        useState(() =>
-            Number.isFinite(initial?.latitude) &&
-            Number.isFinite(initial?.longitude)
-                ? initial
-                : null
-        );
+    const [driverPosition, setDriverPosition] = useState(
+        isValidPoint(initial)
+            ? { latitude: Number(initial.latitude), longitude: Number(initial.longitude) }
+            : null
+    );
+
+    const [route, setRoute] = useState(null);
+    const [routing, setRouting] = useState(false);
+    const [routeError, setRouteError] = useState("");
+    const lastRouteRef = useRef(null);
 
     const handleLocation = useMemo(
         () => (payload) => {
-            if (
-                !payload ||
-                payload.rideId !== ride?._id
-            ) {
-                return;
-            }
+            if (!payload || payload.rideId !== ride?._id) return;
 
             const latitude = Number(payload.latitude);
             const longitude = Number(payload.longitude);
 
-            if (
-                !Number.isFinite(latitude) ||
-                !Number.isFinite(longitude)
-            ) {
-                return;
-            }
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
-            setDriverPosition({
-                latitude,
-                longitude,
-            });
+            setDriverPosition({ latitude, longitude });
         },
         [ride?._id]
     );
@@ -104,54 +90,97 @@ const LiveMap = ({ ride }) => {
     useSocket(
         "driver:location",
         handleLocation,
-        Boolean(ride?._id) &&
-            ["ASSIGNED", "ARRIVED", "PICKED_UP"].includes(
-                ride.status
-            )
+        Boolean(ride?._id) && ACTIVE_STATUSES.includes(ride.status)
     );
 
     const target =
-        ride?.status === "PICKED_UP"
-            ? ride?.dropLocation
-            : ride?.pickupLocation;
+        ride?.status === "PICKED_UP" ? ride?.dropLocation : ride?.pickupLocation;
 
-    const targetLabel =
-        ride?.status === "PICKED_UP"
-            ? "Drop-off"
-            : "Pickup";
-
-    const hasTarget =
-        Number.isFinite(target?.latitude) &&
-        Number.isFinite(target?.longitude);
+    const targetLabel = ride?.status === "PICKED_UP" ? "Drop-off" : "Pickup";
+    const hasTarget = isValidPoint(target);
 
     const driverLatLng = driverPosition
-        ? [
-              driverPosition.latitude,
-              driverPosition.longitude,
-          ]
+        ? [driverPosition.latitude, driverPosition.longitude]
         : null;
 
     const targetLatLng = hasTarget
-        ? [target.latitude, target.longitude]
+        ? [Number(target.latitude), Number(target.longitude)]
         : null;
 
-    const center =
-        driverLatLng ??
-        targetLatLng ??
-        DEFAULT_CENTER;
+    const center = driverLatLng ?? targetLatLng ?? DEFAULT_CENTER;
 
-    const distanceKm =
-        driverPosition && hasTarget
-            ? haversineDistanceKm(
-                  driverPosition,
-                  target
-              )
-            : null;
+    useEffect(() => {
+        setRoute(null);
+        lastRouteRef.current = null;
+        onMetricsChange?.({ distanceKm: null, etaMinutes: null });
+    }, [ride?._id, ride?.status, onMetricsChange]);
 
-    const etaMinutes =
-        distanceKm !== null
-            ? estimateEtaMinutes(distanceKm)
-            : null;
+    useEffect(() => {
+        if (
+            !ride?._id ||
+            !driverPosition ||
+            !hasTarget ||
+            !ACTIVE_STATUSES.includes(ride.status)
+        ) {
+            return;
+        }
+
+        const from = {
+            latitude: Number(driverPosition.latitude),
+            longitude: Number(driverPosition.longitude),
+        };
+
+        const to = {
+            latitude: Number(target.latitude),
+            longitude: Number(target.longitude),
+        };
+
+        const previous = lastRouteRef.current;
+
+        if (
+            previous?.status === ride.status &&
+            Math.abs(from.latitude - previous.latitude) < 0.0005 &&
+            Math.abs(from.longitude - previous.longitude) < 0.0005
+        ) {
+            return;
+        }
+
+        const timeout = setTimeout(async () => {
+            try {
+                setRouting(true);
+                setRouteError("");
+
+                const result = await routeService.getRideRoute(ride._id, from, to);
+
+                setRoute(result);
+                onMetricsChange?.({
+                    distanceKm: result.distanceKm,
+                    etaMinutes: result.durationMinutes,
+                });
+
+                lastRouteRef.current = {
+                    latitude: from.latitude,
+                    longitude: from.longitude,
+                    status: ride.status,
+                };
+            } catch (error) {
+                setRouteError(error?.message || "Unable to calculate road route.");
+            } finally {
+                setRouting(false);
+            }
+        }, 700);
+
+        return () => clearTimeout(timeout);
+    }, [
+        ride?._id,
+        ride?.status,
+        driverPosition?.latitude,
+        driverPosition?.longitude,
+        target?.latitude,
+        target?.longitude,
+        hasTarget,
+        onMetricsChange,
+    ]);
 
     return (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -175,30 +204,28 @@ const LiveMap = ({ ride }) => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {distanceKm !== null && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
-                            ~{distanceKm.toFixed(1)} km
+                    {routing && (
+                        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                            Routing…
                         </span>
                     )}
 
-                    {etaMinutes !== null && (
+                    {route?.distanceKm != null && (
+                        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
+                            {route.distanceKm.toFixed(1)} km
+                        </span>
+                    )}
+
+                    {route?.durationMinutes != null && (
                         <span className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
-                            ~{etaMinutes} min
+                            {route.durationMinutes} min
                         </span>
                     )}
                 </div>
             </div>
 
             <div className="h-72 w-full sm:h-96">
-                <MapContainer
-                    center={center}
-                    zoom={13}
-                    scrollWheelZoom
-                    style={{
-                        height: "100%",
-                        width: "100%",
-                    }}
-                >
+                <MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
                     <TileLayer
                         attribution="&copy; OpenStreetMap contributors"
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -206,51 +233,36 @@ const LiveMap = ({ ride }) => {
 
                     {driverLatLng && (
                         <>
-                            <Marker
-                                position={driverLatLng}
-                                icon={driverIcon}
-                            >
-                                <Popup>
-                                    Driver current location
-                                </Popup>
+                            <Marker position={driverLatLng} icon={driverIcon}>
+                                <Popup>Driver current location</Popup>
                             </Marker>
-
-                            <Recenter
-                                position={driverLatLng}
-                            />
+                            <Recenter position={driverLatLng} />
                         </>
                     )}
 
                     {targetLatLng && (
-                        <Marker
-                            position={targetLatLng}
-                            icon={targetIcon}
-                        >
+                        <Marker position={targetLatLng} icon={targetIcon}>
                             <Popup>
                                 {targetLabel}
-                                {target?.name
-                                    ? `: ${target.name}`
-                                    : ""}
+                                {target?.name ? `: ${target.name}` : ""}
                             </Popup>
                         </Marker>
                     )}
 
-                    {driverLatLng && targetLatLng && (
+                    {route?.geometry?.length > 1 && (
                         <Polyline
-                            positions={[
-                                driverLatLng,
-                                targetLatLng,
-                            ]}
-                            pathOptions={{
-                                color: "#0284c7",
-                                weight: 3,
-                                dashArray: "6 8",
-                                opacity: 0.7,
-                            }}
+                            positions={route.geometry}
+                            pathOptions={{ color: "#0284c7", weight: 5, opacity: 0.9 }}
                         />
                     )}
                 </MapContainer>
             </div>
+
+            {routeError && (
+                <div className="border-t border-amber-100 bg-amber-50 px-5 py-3 text-xs font-semibold text-amber-700 sm:px-6">
+                    {routeError}
+                </div>
+            )}
 
             {!driverPosition && (
                 <div className="border-t border-amber-100 bg-amber-50 px-5 py-3 text-xs font-semibold text-amber-700 sm:px-6">
