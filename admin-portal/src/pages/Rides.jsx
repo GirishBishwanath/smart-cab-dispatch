@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa6";
 
 import api from "../services/api.js";
+import FleetMap from "../components/FleetMap.jsx";
 
 const STATUS = ["ARRIVED", "PICKED_UP", "COMPLETED"];
 
@@ -164,6 +165,14 @@ const Rides = () => {
         ))}
       </div>
 
+      <FleetMap
+        rides={sortedRides.filter((ride) =>
+          ["ASSIGNED", "ARRIVED", "PICKED_UP"].includes(
+            ride.status
+          )
+        )}
+      />
+
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-md">
@@ -189,8 +198,8 @@ const Rides = () => {
                 type="button"
                 onClick={() => setFilter(value)}
                 className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold transition ${filter === value
-                    ? "bg-white text-slate-950 shadow-sm"
-                    : "text-slate-500 hover:text-slate-900"
+                  ? "bg-white text-slate-950 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
                   }`}
               >
                 {label}
