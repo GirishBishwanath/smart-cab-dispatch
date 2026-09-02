@@ -3,7 +3,7 @@ import app from "./app.js";
 
 import connectDB from "./config/db.js";
 import { PORT } from "./config/env.js";
-import { setupSocket } from "./sockets/socket.js";
+import { initializeSocket } from "./config/socket.js";
 
 const startServer = async () => {
     try {
@@ -11,7 +11,7 @@ const startServer = async () => {
 
         const server = http.createServer(app);
 
-        setupSocket(server);
+        initializeSocket(server);
 
         server.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);

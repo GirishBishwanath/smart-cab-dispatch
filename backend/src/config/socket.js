@@ -281,7 +281,19 @@ const getIO = () => {
     return io;
 };
 
+const emitToUser = (userId, event, payload = {}) => {
+    const io = getIO();
+
+    if (!userId) {
+        console.warn(`⚠️ Cannot emit "${event}": userId is missing.`);
+        return;
+    }
+
+    io.to(`user:${userId.toString()}`).emit(event, payload);
+};
+
 export {
     initializeSocket,
     getIO,
+    emitToUser,
 };
