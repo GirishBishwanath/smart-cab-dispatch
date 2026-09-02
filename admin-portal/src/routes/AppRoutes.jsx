@@ -9,8 +9,6 @@ import RideRequests from "../pages/RideRequests.jsx";
 import Rides from "../pages/Rides.jsx";
 import RideDetails from "../pages/RideDetails.jsx";
 import Analytics from "../pages/Analytics.jsx";
-import Settings from "../pages/Settings.jsx";
-import Profile from "../pages/Profile.jsx";
 
 import Login from "../pages/auth/Login.jsx";
 import NotFound from "../pages/NotFound.jsx";
@@ -24,8 +22,6 @@ import PublicRoute from "./PublicRoute.jsx";
 const AppRoutes = () => {
   return (
     <Routes>
-
-      {/* ==================== PUBLIC ROUTES ==================== */}
       <Route element={<PublicRoute />}>
         <Route
           path={ROUTES.LOGIN}
@@ -33,8 +29,6 @@ const AppRoutes = () => {
         />
       </Route>
 
-
-      {/* ==================== ADMIN ROUTES ==================== */}
       <Route
         element={
           <ProtectedRoute
@@ -79,21 +73,9 @@ const AppRoutes = () => {
             element={<Analytics />}
           />
 
-          <Route
-            path="/admin/settings"
-            element={<Settings />}
-          />
-
-          <Route
-            path="/admin/profile"
-            element={<Profile />}
-          />
-
         </Route>
       </Route>
 
-
-      {/* ==================== ROOT REDIRECT ==================== */}
       <Route
         path="/"
         element={
@@ -103,8 +85,6 @@ const AppRoutes = () => {
         }
       />
 
-
-      {/* ==================== 404 ==================== */}
       <Route
         path="*"
         element={<NotFound />}

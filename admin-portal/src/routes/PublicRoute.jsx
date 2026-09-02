@@ -14,18 +14,10 @@ const PublicRoute = ({ children }) => {
     initializing,
   } = useAuth();
 
-  /*
-   * Wait for the persisted session to be
-   * validated before deciding where to go.
-   */
   if (initializing) {
     return <FullPageLoader />;
   }
 
-  /*
-   * Already logged in.
-   * Do not allow the user to remain on /login.
-   */
   if (isAuthenticated) {
     return (
       <Navigate
@@ -35,10 +27,6 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  /*
-   * Not authenticated.
-   * Render the public page.
-   */
   return children ?? <Outlet />;
 };
 

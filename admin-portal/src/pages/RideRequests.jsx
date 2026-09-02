@@ -178,7 +178,6 @@ const Requests = () => {
         </div>
       </section>
 
-      {/* Desktop */}
       <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px]">
@@ -262,7 +261,6 @@ const Requests = () => {
         </div>
       </section>
 
-      {/* Mobile — independent cards */}
       <section className="space-y-3 md:hidden">
         {filteredRequests.map((request) => {
           const message = getMessage(request);

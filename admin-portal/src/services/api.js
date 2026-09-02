@@ -3,14 +3,6 @@ import axios from "axios";
 import ApiError from "../utils/ApiError.js";
 import { getToken } from "../utils/storage.js";
 
-/**
- * Shared Axios client for the admin portal.
- *
- * The response interceptor unwraps Axios' envelope and resolves with the API
- * envelope itself — `{ success, message, data }` — because every backend
- * controller answers through utils/response.js. Callers therefore read
- * `response.data`, never `response.data.data`.
- */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:5000/api",
   headers: {
@@ -18,22 +10,8 @@ const api = axios.create({
   },
 });
 
-/**
- * Requests that must not trigger the global session-expiry handler. A 401 from
- * the login route means "wrong credentials", not "your session died".
- */
 const SESSION_EXEMPT_PATHS = ["/auth/login"];
 
-/**
- * Backend quirk (verified against /api/auth/me): auth.middleware.js lets
- * jsonwebtoken's errors reach error.middleware.js untyped, so an expired or
- * tampered token comes back as a 500 carrying the library's message instead of
- * a 401. Only a missing Authorization header produces a real 401.
- *
- * Matching those messages is what lets a dead session be recognised. A 403 is
- * deliberately excluded — that is a role denial on a session that is still
- * valid, and must not sign the user out.
- */
 const JWT_FAILURE_MESSAGES = [
   "jwt expired",
   "jwt malformed",
@@ -55,10 +33,6 @@ const isSessionFailure = (status, message) => {
 
 let onUnauthorized = null;
 
-/**
- * Lets AuthContext own the reaction to an expired/rejected token without this
- * module importing React or reaching for window.location.
- */
 export const setUnauthorizedHandler = (handler) => {
   onUnauthorized = handler;
 };
@@ -110,8 +84,6 @@ api.interceptors.response.use(
 
     if (!isSessionExempt && isSessionFailure(status, message)) {
       onUnauthorized?.();
-
-      // Never surface jsonwebtoken's internal wording ("jwt expired") to the UI.
       return Promise.reject(
         new ApiError(401, "Your session has expired. Please sign in again.")
       );

@@ -210,7 +210,6 @@ const Rides = () => {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {/* Desktop */}
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[1150px]">
             <thead className="border-b border-slate-100 bg-slate-50">
@@ -290,7 +289,6 @@ const Rides = () => {
           </table>
         </div>
 
-        {/* Mobile */}
         <div className="space-y-3 bg-slate-50 p-3 md:hidden">
           {filteredRides.map((ride) => {
             const guest = ride.guests?.[0]?.user;

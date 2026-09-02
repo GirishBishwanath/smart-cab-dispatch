@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaCar, FaPlus, FaUser, FaPhone, FaPen, FaTrash } from "react-icons/fa";
+import { FaPlus, FaPen, FaTrash } from "react-icons/fa";
 
 import driverService from "../services/driver.service.js";
 import Modal from "../components/common/Modal.jsx";

@@ -23,17 +23,10 @@ const ProtectedRoute = ({
 
   const location = useLocation();
 
-  /*
-   * Wait until the persisted session has been
-   * validated by /auth/me.
-   */
   if (initializing) {
     return <FullPageLoader />;
   }
 
-  /*
-   * No authenticated user.
-   */
   if (!isAuthenticated) {
     return (
       <Navigate
@@ -44,10 +37,6 @@ const ProtectedRoute = ({
     );
   }
 
-  /*
-   * User is authenticated but does not have
-   * permission for this portal section.
-   */
   if (
     allowedRoles?.length &&
     !allowedRoles.includes(user?.role)
@@ -60,19 +49,6 @@ const ProtectedRoute = ({
     );
   }
 
-  /*
-   * Supports both:
-   *
-   * <ProtectedRoute>
-   *   <Component />
-   * </ProtectedRoute>
-   *
-   * and:
-   *
-   * <Route element={<ProtectedRoute />}>
-   *   ...
-   * </Route>
-   */
   return children ?? <Outlet />;
 };
 
