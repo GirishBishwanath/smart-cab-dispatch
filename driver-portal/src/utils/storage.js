@@ -26,10 +26,7 @@ export const saveSession = (token, user) => {
             USER_KEY,
             JSON.stringify(user)
         );
-    } catch {
-        // In-memory authentication still works
-        // if localStorage is unavailable.
-    }
+    } catch {}
 };
 
 export const saveUser = (user) => {
@@ -38,16 +35,12 @@ export const saveUser = (user) => {
             USER_KEY,
             JSON.stringify(user)
         );
-    } catch {
-        // Ignore storage failures.
-    }
+    } catch {}
 };
 
 export const clearSession = () => {
     try {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-    } catch {
-        // Ignore storage failures.
-    }
+    } catch {}
 };

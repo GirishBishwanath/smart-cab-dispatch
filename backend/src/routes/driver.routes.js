@@ -11,31 +11,12 @@ import {
 } from "../controllers/driver.controller.js";
 
 import authenticate from "../middleware/auth.middleware.js";
-
 import authorize from "../middleware/role.middleware.js";
-
-import {
-    ROLES,
-} from "../utils/constants.js";
-
+import { ROLES } from "../utils/constants.js";
 
 const router = express.Router();
 
-
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
-
 router.use(authenticate);
-
-
-/*
-|--------------------------------------------------------------------------
-| Driver's own profile
-|--------------------------------------------------------------------------
-*/
 
 router.get(
     "/me",
@@ -43,52 +24,38 @@ router.get(
     getMyProfile
 );
 
-
-/*
-|--------------------------------------------------------------------------
-| Admin driver management
-|--------------------------------------------------------------------------
-*/
-
 router.use(
     authorize(ROLES.ADMIN)
 );
-
 
 router.post(
     "/",
     createDriver
 );
 
-
 router.get(
     "/",
     getDrivers
 );
-
 
 router.get(
     "/:id",
     getDriverById
 );
 
-
 router.patch(
     "/:id",
     updateDriver
 );
-
 
 router.patch(
     "/:id/status",
     updateDriverStatus
 );
 
-
 router.delete(
     "/:id",
     deleteDriver
 );
-
 
 export default router;

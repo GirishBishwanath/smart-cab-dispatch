@@ -1,6 +1,5 @@
 import RideRequest from "../models/RideRequest.js";
 import Guest from "../models/Guest.js";
-import Ride from "../models/Ride.js";
 import ApiError from "../utils/ApiError.js";
 import dispatchService from "./dispatch.service.js";
 
@@ -8,19 +7,14 @@ const populateRequest = (query) =>
     query
         .populate({
             path: "guest",
-            populate: {
-                path: "user",
-                select: "-password -__v",
-            },
+            populate: { path: "user", select: "-password -__v" },
         })
         .populate("ride");
 
 const createRideRequest = async (userId, data) => {
     const guest = await Guest.findOne({ user: userId });
 
-    if (!guest) {
-        throw new ApiError(404, "Guest not found");
-    }
+    if (!guest) throw new ApiError(404, "Guest not found");
 
     if (
         !data?.pickupLocation ||
@@ -63,35 +57,26 @@ const createRideRequest = async (userId, data) => {
         tripType: data.tripType ?? "ON_DEMAND",
     });
 
-    return populateRequest(
-        RideRequest.findById(rideRequest._id)
-    );
+    return populateRequest(RideRequest.findById(rideRequest._id));
 };
 
 const getRideRequests = async () =>
-    populateRequest(
-        RideRequest.find().sort({ createdAt: -1 })
-    );
+    populateRequest(RideRequest.find().sort({ createdAt: -1 }));
 
 const getMyRideRequests = async (userId) => {
     const guest = await Guest.findOne({ user: userId });
 
-    if (!guest) {
-        throw new ApiError(404, "Guest not found");
-    }
+    if (!guest) throw new ApiError(404, "Guest not found");
 
     return populateRequest(
-        RideRequest.find({ guest: guest._id })
-            .sort({ createdAt: -1 })
+        RideRequest.find({ guest: guest._id }).sort({ createdAt: -1 })
     );
 };
 
 const approveRideRequest = async (id) => {
     const request = await RideRequest.findById(id);
 
-    if (!request) {
-        throw new ApiError(404, "Ride request not found");
-    }
+    if (!request) throw new ApiError(404, "Ride request not found");
 
     if (request.status !== "PENDING") {
         throw new ApiError(400, "Ride request already processed");
@@ -111,9 +96,7 @@ const approveRideRequest = async (id) => {
 const declineRideRequest = async (id, reason = "") => {
     const request = await RideRequest.findById(id);
 
-    if (!request) {
-        throw new ApiError(404, "Ride request not found");
-    }
+    if (!request) throw new ApiError(404, "Ride request not found");
 
     if (request.status !== "PENDING") {
         throw new ApiError(400, "Ride request already processed");
@@ -125,34 +108,20 @@ const declineRideRequest = async (id, reason = "") => {
 
     await request.save();
 
-    return populateRequest(
-        RideRequest.findById(request._id)
-    );
+    return populateRequest(RideRequest.findById(request._id));
 };
 
-const cancelMyRideRequest = async (userId, id, reason = "" ) => {
-    const guest = await Guest.findOne({
-        user: userId,
-    });
+const cancelMyRideRequest = async (userId, id, reason = "") => {
+    const guest = await Guest.findOne({ user: userId });
 
-    if (!guest) {
-        throw new ApiError(404, "Guest not found");
-    }
+    if (!guest) throw new ApiError(404, "Guest not found");
 
     const request = await RideRequest.findById(id);
 
-    if (!request) {
-        throw new ApiError(
-            404,
-            "Ride request not found"
-        );
-    }
+    if (!request) throw new ApiError(404, "Ride request not found");
 
     if (!request.guest.equals(guest._id)) {
-        throw new ApiError(
-            403,
-            "You cannot cancel this ride request."
-        );
+        throw new ApiError(403, "You cannot cancel this ride request.");
     }
 
     if (request.status !== "PENDING") {
@@ -163,10 +132,7 @@ const cancelMyRideRequest = async (userId, id, reason = "" ) => {
     }
 
     if (!reason.trim()) {
-        throw new ApiError(
-            400,
-            "Cancellation reason is required."
-        );
+        throw new ApiError(400, "Cancellation reason is required.");
     }
 
     request.status = "CANCELLED";
@@ -176,9 +142,7 @@ const cancelMyRideRequest = async (userId, id, reason = "" ) => {
 
     await request.save();
 
-    return populateRequest(
-        RideRequest.findById(request._id)
-    );
+    return populateRequest(RideRequest.findById(request._id));
 };
 
 export default {

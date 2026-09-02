@@ -8,31 +8,19 @@ const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
-        if (
-            !authHeader ||
-            !authHeader.startsWith("Bearer ")
-        ) {
-            throw new ApiError(
-                401,
-                "Authentication required"
-            );
+        if (!authHeader?.startsWith("Bearer ")) {
+            throw new ApiError(401, "Authentication required");
         }
 
         const token = authHeader.split(" ")[1];
-
         const decoded = jwt.verify(token, JWT_SECRET);
-
         const user = await User.findById(decoded.id);
 
-        req.user = userDTO(user);
-
         if (!user || !user.isActive) {
-            throw new ApiError(
-                401,
-                "Invalid authentication token"
-            );
+            throw new ApiError(401, "Invalid authentication token");
         }
 
+        req.user = userDTO(user);
         next();
     } catch (error) {
         next(error);

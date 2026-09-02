@@ -3,50 +3,23 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
 
 const createRideRequest = asyncHandler(async (req, res) => {
-    const request = await rideRequestService.createRideRequest(
-        req.user.id,
-        req.body
-    );
-
-    return successResponse(
-        res,
-        request,
-        "Ride request created successfully"
-    );
+    const request = await rideRequestService.createRideRequest(req.user.id, req.body);
+    return successResponse(res, request, "Ride request created successfully");
 });
 
 const getRideRequests = asyncHandler(async (req, res) => {
     const requests = await rideRequestService.getRideRequests();
-
-    return successResponse(
-        res,
-        requests,
-        "Ride requests fetched successfully"
-    );
+    return successResponse(res, requests, "Ride requests fetched successfully");
 });
 
 const getMyRideRequests = asyncHandler(async (req, res) => {
-    const requests = await rideRequestService.getMyRideRequests(
-        req.user.id
-    );
-
-    return successResponse(
-        res,
-        requests,
-        "Your ride requests fetched successfully"
-    );
+    const requests = await rideRequestService.getMyRideRequests(req.user.id);
+    return successResponse(res, requests, "Your ride requests fetched successfully");
 });
 
 const approveRideRequest = asyncHandler(async (req, res) => {
-    const ride = await rideRequestService.approveRideRequest(
-        req.params.id
-    );
-
-    return successResponse(
-        res,
-        ride,
-        "Ride assigned successfully"
-    );
+    const ride = await rideRequestService.approveRideRequest(req.params.id);
+    return successResponse(res, ride, "Ride assigned successfully");
 });
 
 const declineRideRequest = asyncHandler(async (req, res) => {
@@ -54,12 +27,7 @@ const declineRideRequest = asyncHandler(async (req, res) => {
         req.params.id,
         req.body.reason
     );
-
-    return successResponse(
-        res,
-        request,
-        "Ride request declined successfully"
-    );
+    return successResponse(res, request, "Ride request declined successfully");
 });
 
 const cancelMyRideRequest = asyncHandler(async (req, res) => {
@@ -68,12 +36,7 @@ const cancelMyRideRequest = asyncHandler(async (req, res) => {
         req.params.id,
         req.body.reason
     );
-
-    return successResponse(
-        res,
-        request,
-        "Ride request cancelled successfully"
-    );
+    return successResponse(res, request, "Ride request cancelled successfully");
 });
 
 export {

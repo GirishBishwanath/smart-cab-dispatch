@@ -13,21 +13,17 @@ import rideService from "../services/ride.service.js";
 import RideStatus from "../components/RideStatus.jsx";
 
 const formatDate = (value) =>
-    value
-        ? new Date(value).toLocaleDateString(undefined, {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-        })
-        : "—";
+    value ? new Date(value).toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    }) : "—";
 
 const formatTime = (value) =>
-    value
-        ? new Date(value).toLocaleTimeString([], {
-            hour: "numeric",
-            minute: "2-digit",
-        })
-        : "—";
+    value ? new Date(value).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+    }) : "—";
 
 const getRideDate = (ride) =>
     ride.status === "CANCELLED"
@@ -35,19 +31,13 @@ const getRideDate = (ride) =>
         : ride.completedAt ?? ride.createdAt;
 
 const sortNewestFirst = (rides) =>
-    [...rides].sort(
-        (a, b) =>
-            new Date(getRideDate(b) || 0) -
-            new Date(getRideDate(a) || 0)
-    );
+    [...rides].sort((a, b) => new Date(getRideDate(b) || 0) - new Date(getRideDate(a) || 0));
 
 const getCancelledBy = (ride) => {
     const source =
         typeof ride.cancelledBy === "string"
             ? ride.cancelledBy
-            : ride.cancelledBy?.role ??
-            ride.cancelledByRole ??
-            ride.cancellationSource;
+            : ride.cancelledBy?.role ?? ride.cancelledByRole ?? ride.cancellationSource;
 
     if (source === "GUEST") return "Cancelled by you";
     if (source === "DRIVER") return "Cancelled by driver";
@@ -58,10 +48,7 @@ const getCancelledBy = (ride) => {
 
 const getTripType = (value) =>
     value
-        ? value
-            .replaceAll("_", " ")
-            .toLowerCase()
-            .replace(/\b\w/g, (c) => c.toUpperCase())
+        ? value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
         : "—";
 
 const RideHistory = () => {
@@ -111,13 +98,8 @@ const RideHistory = () => {
         });
     }, [rides, filter, search]);
 
-    const completed = rides.filter(
-        (ride) => ride.status === "COMPLETED"
-    ).length;
-
-    const cancelled = rides.filter(
-        (ride) => ride.status === "CANCELLED"
-    ).length;
+    const completed = rides.filter((ride) => ride.status === "COMPLETED").length;
+    const cancelled = rides.filter((ride) => ride.status === "CANCELLED").length;
 
     if (loading) {
         return (
@@ -126,10 +108,7 @@ const RideHistory = () => {
 
                 <div className="grid gap-4 sm:grid-cols-3">
                     {[1, 2, 3].map((item) => (
-                        <div
-                            key={item}
-                            className="h-24 animate-pulse rounded-2xl bg-slate-200"
-                        />
+                        <div key={item} className="h-24 animate-pulse rounded-2xl bg-slate-200" />
                     ))}
                 </div>
 
@@ -161,9 +140,7 @@ const RideHistory = () => {
                     disabled={loading}
                     className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    <FaRotate
-                        className={`size-3.5 ${loading ? "animate-spin" : ""}`}
-                    />
+                    <FaRotate className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
                     <span>Refresh</span>
                 </button>
             </header>
@@ -176,30 +153,18 @@ const RideHistory = () => {
 
             <section className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500">
-                        Total trips
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-slate-950">
-                        {rides.length}
-                    </p>
+                    <p className="text-xs font-bold text-slate-500">Total trips</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-950">{rides.length}</p>
                 </div>
 
                 <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5">
-                    <p className="text-xs font-bold text-emerald-700">
-                        Completed
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-emerald-800">
-                        {completed}
-                    </p>
+                    <p className="text-xs font-bold text-emerald-700">Completed</p>
+                    <p className="mt-2 text-2xl font-bold text-emerald-800">{completed}</p>
                 </div>
 
                 <div className="rounded-2xl border border-red-100 bg-red-50/70 p-5">
-                    <p className="text-xs font-bold text-red-700">
-                        Cancelled
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-red-800">
-                        {cancelled}
-                    </p>
+                    <p className="text-xs font-bold text-red-700">Cancelled</p>
+                    <p className="mt-2 text-2xl font-bold text-red-800">{cancelled}</p>
                 </div>
             </section>
 
@@ -242,34 +207,18 @@ const RideHistory = () => {
             {filtered.length === 0 ? (
                 <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                     <FaRoute className="mx-auto size-6 text-slate-300" />
-
-                    <p className="mt-3 text-sm font-semibold text-slate-700">
-                        No rides found
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                        Try another search or filter.
-                    </p>
+                    <p className="mt-3 text-sm font-semibold text-slate-700">No rides found</p>
+                    <p className="mt-1 text-xs text-slate-500">Try another search or filter.</p>
                 </section>
             ) : (
                 <>
-                    {/* DESKTOP */}
                     <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[950px]">
                                 <thead className="bg-slate-50">
                                     <tr>
-                                        {[
-                                            "Date",
-                                            "Route",
-                                            "Vehicle",
-                                            "Driver",
-                                            "Status",
-                                        ].map((title) => (
-                                            <th
-                                                key={title}
-                                                className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400"
-                                            >
+                                        {["Date", "Route", "Vehicle", "Driver", "Status"].map((title) => (
+                                            <th key={title} className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                                 {title}
                                             </th>
                                         ))}
@@ -279,19 +228,12 @@ const RideHistory = () => {
                                 <tbody className="divide-y divide-slate-100">
                                     {filtered.map((ride) => {
                                         const date = getRideDate(ride);
-                                        const cancelledRide =
-                                            ride.status === "CANCELLED";
+                                        const cancelledRide = ride.status === "CANCELLED";
 
                                         return (
-                                            <tr
-                                                key={ride._id}
-                                                className="transition hover:bg-slate-50/70"
-                                            >
+                                            <tr key={ride._id} className="transition hover:bg-slate-50/70">
                                                 <td className="px-5 py-4 align-top">
-                                                    <p className="text-sm font-semibold text-slate-900">
-                                                        {formatDate(date)}
-                                                    </p>
-
+                                                    <p className="text-sm font-semibold text-slate-900">{formatDate(date)}</p>
                                                     <p className="mt-0.5 text-xs text-slate-400">
                                                         <FaCalendarDays className="mr-1 inline size-3" />
                                                         {formatTime(date)}
@@ -313,13 +255,9 @@ const RideHistory = () => {
 
                                                     {cancelledRide && (
                                                         <div className="mt-2">
-                                                            <p className="text-xs font-semibold text-red-600">
-                                                                {getCancelledBy(ride)}
-                                                            </p>
-
+                                                            <p className="text-xs font-semibold text-red-600">{getCancelledBy(ride)}</p>
                                                             <p className="mt-0.5 text-xs text-red-500">
-                                                                {ride.cancelReason ||
-                                                                    "No cancellation reason provided."}
+                                                                {ride.cancelReason || "No cancellation reason provided."}
                                                             </p>
                                                         </div>
                                                     )}
@@ -331,32 +269,23 @@ const RideHistory = () => {
                                                     </p>
 
                                                     {ride.vehicle?.model && (
-                                                        <p className="mt-0.5 text-xs text-slate-400">
-                                                            {ride.vehicle.model}
-                                                        </p>
+                                                        <p className="mt-0.5 text-xs text-slate-400">{ride.vehicle.model}</p>
                                                     )}
                                                 </td>
 
                                                 <td className="px-5 py-4 align-top">
                                                     <p className="text-sm font-semibold text-slate-700">
-                                                        {ride.driver?.user?.fullName ||
-                                                            "Driver unavailable"}
+                                                        {ride.driver?.user?.fullName || "Driver unavailable"}
                                                     </p>
 
                                                     <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
                                                         <FaPhone className="size-2.5" />
-
-                                                        <span>
-                                                            {ride.driver?.user?.phone ||
-                                                                "Phone unavailable"}
-                                                        </span>
+                                                        <span>{ride.driver?.user?.phone || "Phone unavailable"}</span>
                                                     </p>
                                                 </td>
 
                                                 <td className="px-5 py-4 align-top">
-                                                    <RideStatus
-                                                        status={ride.status}
-                                                    />
+                                                    <RideStatus status={ride.status} />
                                                 </td>
                                             </tr>
                                         );
@@ -366,12 +295,10 @@ const RideHistory = () => {
                         </div>
                     </section>
 
-                    {/* MOBILE */}
                     <section className="space-y-4 md:hidden">
                         {filtered.map((ride) => {
                             const date = getRideDate(ride);
-                            const cancelledRide =
-                                ride.status === "CANCELLED";
+                            const cancelledRide = ride.status === "CANCELLED";
 
                             return (
                                 <article
@@ -394,16 +321,13 @@ const RideHistory = () => {
                                     </div>
 
                                     <div className="border-b border-slate-100 px-4 py-4">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                            Route
-                                        </p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Route</p>
 
                                         <div className="mt-3 flex items-center gap-3">
                                             <div className="min-w-0 flex-1">
                                                 <p className="truncate text-sm font-bold text-slate-950">
                                                     {ride.pickupLocation?.name || "—"}
                                                 </p>
-
                                                 <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                                                     Pickup
                                                 </p>
@@ -417,7 +341,6 @@ const RideHistory = () => {
                                                 <p className="truncate text-sm font-bold text-slate-950">
                                                     {ride.dropLocation?.name || "—"}
                                                 </p>
-
                                                 <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                                                     Destination
                                                 </p>
@@ -429,10 +352,7 @@ const RideHistory = () => {
                                         <div className="min-w-0 border-r border-slate-100 px-4 py-3.5">
                                             <div className="flex items-center gap-2">
                                                 <FaCar className="size-3 text-slate-400" />
-
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                    Vehicle
-                                                </p>
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vehicle</p>
                                             </div>
 
                                             <p className="mt-1.5 truncate text-sm font-semibold text-slate-700">
@@ -440,38 +360,27 @@ const RideHistory = () => {
                                             </p>
 
                                             {ride.vehicle?.model && (
-                                                <p className="mt-0.5 truncate text-xs text-slate-400">
-                                                    {ride.vehicle.model}
-                                                </p>
+                                                <p className="mt-0.5 truncate text-xs text-slate-400">{ride.vehicle.model}</p>
                                             )}
                                         </div>
 
                                         <div className="min-w-0 px-4 py-3.5">
-                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                Driver
-                                            </p>
-
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Driver</p>
                                             <p className="mt-1.5 truncate text-sm font-semibold text-slate-700">
-                                                {ride.driver?.user?.fullName ||
-                                                    "Driver unavailable"}
+                                                {ride.driver?.user?.fullName || "Driver unavailable"}
                                             </p>
 
                                             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
                                                 <FaPhone className="size-2.5 shrink-0" />
-
                                                 <span className="truncate">
-                                                    {ride.driver?.user?.phone ||
-                                                        "Phone unavailable"}
+                                                    {ride.driver?.user?.phone || "Phone unavailable"}
                                                 </span>
                                             </p>
                                         </div>
                                     </div>
 
                                     <div className="border-b border-slate-100 px-4 py-3.5">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                            Trip
-                                        </p>
-
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trip</p>
                                         <p className="mt-1.5 text-sm font-semibold text-slate-700">
                                             {getTripType(ride.tripType)}
                                         </p>
@@ -479,13 +388,9 @@ const RideHistory = () => {
 
                                     {cancelledRide && (
                                         <div className="border-t border-red-100 bg-red-50/70 px-4 py-3.5">
-                                            <p className="text-xs font-bold text-red-700">
-                                                {getCancelledBy(ride)}
-                                            </p>
-
+                                            <p className="text-xs font-bold text-red-700">{getCancelledBy(ride)}</p>
                                             <p className="mt-1 text-xs leading-5 text-red-600">
-                                                {ride.cancelReason ||
-                                                    "No cancellation reason provided."}
+                                                {ride.cancelReason || "No cancellation reason provided."}
                                             </p>
                                         </div>
                                     )}

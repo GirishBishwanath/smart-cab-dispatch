@@ -12,7 +12,6 @@ const RideActionCard = ({
 
     return (
         <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            {/* Next action */}
             <div className="px-5 py-5 sm:px-6 sm:py-6">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -39,7 +38,6 @@ const RideActionCard = ({
                 </div>
             </div>
 
-            {/* Only show on Dashboard */}
             {showDetailsLink && (
                 <div className="flex justify-end border-t border-slate-100 bg-slate-50 px-5 py-3.5 sm:px-6">
                     <button

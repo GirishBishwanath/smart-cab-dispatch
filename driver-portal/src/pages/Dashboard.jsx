@@ -144,7 +144,6 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <section className="overflow-hidden rounded-2xl bg-slate-950 px-6 py-6 shadow-sm sm:px-7">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                     <div>
@@ -177,7 +176,6 @@ const Dashboard = () => {
                 </div>
             )}
 
-            {/* Metrics */}
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="grid divide-y divide-slate-100 md:grid-cols-3 md:divide-x md:divide-y-0">
                     <Metric
@@ -256,7 +254,6 @@ const Dashboard = () => {
                 </div>
             </section>
 
-            {/* Current ride */}
             {loading ? (
                 <section className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
                     <div className="animate-pulse space-y-7">

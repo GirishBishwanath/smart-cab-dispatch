@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+    FaCircleCheck,
     FaEnvelope,
-    FaPhone,
-    FaUser,
-    FaUsers,
-    FaSuitcaseRolling,
     FaHotel,
     FaPen,
+    FaPhone,
+    FaSuitcaseRolling,
+    FaUser,
+    FaUsers,
     FaXmark,
-    FaCircleCheck,
 } from "react-icons/fa6";
 
 import profileService from "../services/profile.service.js";
@@ -18,15 +18,9 @@ const InfoItem = ({ icon: Icon, label, value }) => (
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
             <Icon className="size-4" />
         </div>
-
         <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {label}
-            </p>
-
-            <p className="mt-1 truncate text-sm font-bold text-slate-900">
-                {value || "Not provided"}
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p>
+            <p className="mt-1 truncate text-sm font-bold text-slate-900">{value || "Not provided"}</p>
         </div>
     </div>
 );
@@ -52,7 +46,6 @@ const Profile = () => {
             setError("");
 
             const data = await profileService.getMyProfile();
-
             setProfile(data);
 
             setForm({
@@ -63,9 +56,7 @@ const Profile = () => {
                 luggageCount: data?.guest?.luggageCount ?? 0,
             });
         } catch (err) {
-            setError(
-                err?.message ?? "Unable to load your profile."
-            );
+            setError(err?.message ?? "Unable to load your profile.");
         } finally {
             setLoading(false);
         }
@@ -93,15 +84,11 @@ const Profile = () => {
             setSaving(true);
             setError("");
 
-            const data =
-                await profileService.updateMyProfile(form);
-
+            const data = await profileService.updateMyProfile(form);
             setProfile(data);
             setEditing(false);
         } catch (err) {
-            setError(
-                err?.message ?? "Unable to update your profile."
-            );
+            setError(err?.message ?? "Unable to update your profile.");
         } finally {
             setSaving(false);
         }
@@ -111,10 +98,8 @@ const Profile = () => {
         return (
             <div className="space-y-6">
                 <div className="h-36 animate-pulse rounded-2xl bg-slate-200" />
-
                 <div className="grid gap-5 lg:grid-cols-3">
                     <div className="h-64 animate-pulse rounded-2xl bg-slate-200" />
-
                     <div className="h-64 animate-pulse rounded-2xl bg-slate-200 lg:col-span-2" />
                 </div>
             </div>
@@ -123,7 +108,6 @@ const Profile = () => {
 
     const user = profile?.user;
     const guest = profile?.guest;
-
     const initials = (user?.fullName || "Guest")
         .trim()
         .split(/\s+/)
@@ -134,20 +118,11 @@ const Profile = () => {
 
     return (
         <div className="space-y-6">
-            {/* Page header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-600">
-                        Guest Account
-                    </p>
-
-                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                        My Profile
-                    </h1>
-
-                    <p className="mt-1.5 text-sm text-slate-500">
-                        Manage your account and travel information.
-                    </p>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-600">Guest Account</p>
+                    <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">My Profile</h1>
+                    <p className="mt-1.5 text-sm text-slate-500">Manage your account and travel information.</p>
                 </div>
 
                 <button
@@ -160,16 +135,13 @@ const Profile = () => {
                 </button>
             </header>
 
-            {/* Error */}
             {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {error}
                 </div>
             )}
 
-            {/* Profile + Account information */}
             <div className="grid gap-5 lg:grid-cols-3">
-                {/* Profile summary */}
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div className="bg-gradient-to-br from-slate-950 to-slate-800 p-6">
                         <div className="flex items-start justify-between gap-4">
@@ -183,79 +155,37 @@ const Profile = () => {
                             </span>
                         </div>
 
-                        <h2 className="mt-6 text-xl font-bold text-white">
-                            {user?.fullName || "Guest"}
-                        </h2>
-
-                        <p className="mt-1 text-sm text-slate-400">
-                            Guest account
-                        </p>
+                        <h2 className="mt-6 text-xl font-bold text-white">{user?.fullName || "Guest"}</h2>
+                        <p className="mt-1 text-sm text-slate-400">Guest account</p>
                     </div>
 
                     <div className="px-6 py-5">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            Accommodation
-                        </p>
-
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Accommodation</p>
                         <p className="mt-1 text-sm font-semibold text-slate-900">
                             {guest?.accommodation || "Not provided"}
                         </p>
                     </div>
                 </section>
 
-                {/* Account information */}
                 <section className="lg:col-span-2">
                     <div className="mb-4">
-                        <h2 className="text-lg font-bold text-slate-950">
-                            Account Information
-                        </h2>
-
+                        <h2 className="text-lg font-bold text-slate-950">Account Information</h2>
                         <p className="mt-1 text-sm text-slate-500">
                             Information associated with your guest profile.
                         </p>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <InfoItem
-                            icon={FaUser}
-                            label="Full Name"
-                            value={user?.fullName}
-                        />
-
-                        <InfoItem
-                            icon={FaEnvelope}
-                            label="Email"
-                            value={user?.email}
-                        />
-
-                        <InfoItem
-                            icon={FaPhone}
-                            label="Phone"
-                            value={user?.phone}
-                        />
-
-                        <InfoItem
-                            icon={FaHotel}
-                            label="Accommodation"
-                            value={guest?.accommodation}
-                        />
-
-                        <InfoItem
-                            icon={FaUsers}
-                            label="Group Size"
-                            value={guest?.groupSize}
-                        />
-
-                        <InfoItem
-                            icon={FaSuitcaseRolling}
-                            label="Luggage"
-                            value={guest?.luggageCount}
-                        />
+                        <InfoItem icon={FaUser} label="Full Name" value={user?.fullName} />
+                        <InfoItem icon={FaEnvelope} label="Email" value={user?.email} />
+                        <InfoItem icon={FaPhone} label="Phone" value={user?.phone} />
+                        <InfoItem icon={FaHotel} label="Accommodation" value={guest?.accommodation} />
+                        <InfoItem icon={FaUsers} label="Group Size" value={guest?.groupSize} />
+                        <InfoItem icon={FaSuitcaseRolling} label="Luggage" value={guest?.luggageCount} />
                     </div>
                 </section>
             </div>
 
-            {/* Edit profile modal */}
             {editing && (
                 <div className="fixed inset-0 z-[70] bg-slate-950/50 p-3 backdrop-blur-sm sm:p-4">
                     <div className="flex min-h-full items-center justify-center">
@@ -263,13 +193,9 @@ const Profile = () => {
                             onSubmit={handleSave}
                             className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)]"
                         >
-                            {/* Modal header */}
                             <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6 sm:py-5">
                                 <div className="min-w-0">
-                                    <h2 className="text-base font-bold text-slate-950 sm:text-lg">
-                                        Edit profile
-                                    </h2>
-
+                                    <h2 className="text-base font-bold text-slate-950 sm:text-lg">Edit profile</h2>
                                     <p className="mt-1 text-xs leading-5 text-slate-500">
                                         Update your account and travel details.
                                     </p>
@@ -285,14 +211,10 @@ const Profile = () => {
                                 </button>
                             </div>
 
-                            {/* Scrollable form content */}
                             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <label className="sm:col-span-2">
-                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">
-                                            Full name
-                                        </span>
-
+                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">Full name</span>
                                         <input
                                             name="fullName"
                                             value={form.fullName}
@@ -303,10 +225,7 @@ const Profile = () => {
                                     </label>
 
                                     <label>
-                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">
-                                            Phone
-                                        </span>
-
+                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">Phone</span>
                                         <input
                                             name="phone"
                                             value={form.phone}
@@ -316,10 +235,7 @@ const Profile = () => {
                                     </label>
 
                                     <label>
-                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">
-                                            Accommodation
-                                        </span>
-
+                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">Accommodation</span>
                                         <input
                                             name="accommodation"
                                             value={form.accommodation}
@@ -329,10 +245,7 @@ const Profile = () => {
                                     </label>
 
                                     <label>
-                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">
-                                            Group size
-                                        </span>
-
+                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">Group size</span>
                                         <input
                                             type="number"
                                             min="1"
@@ -344,10 +257,7 @@ const Profile = () => {
                                     </label>
 
                                     <label>
-                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">
-                                            Luggage
-                                        </span>
-
+                                        <span className="mb-1.5 block text-xs font-bold text-slate-500">Luggage</span>
                                         <input
                                             type="number"
                                             min="0"
@@ -360,7 +270,6 @@ const Profile = () => {
                                 </div>
                             </div>
 
-                            {/* Modal footer */}
                             <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-200 bg-white px-4 py-4 sm:flex-row sm:justify-end sm:px-6">
                                 <button
                                     type="button"

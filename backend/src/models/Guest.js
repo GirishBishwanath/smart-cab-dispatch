@@ -16,17 +16,13 @@ const guestSchema = new mongoose.Schema(
 
     pickupLocation: {
       name: String,
-
       latitude: Number,
-
       longitude: Number,
     },
 
     dropLocation: {
       name: String,
-
       latitude: Number,
-
       longitude: Number,
     },
 

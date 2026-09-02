@@ -162,7 +162,6 @@ const CurrentRide = () => {
                 </p>
             </header>
 
-            {/* Ride + Action */}
             <div className="space-y-4">
                 <RideCard ride={ride} />
 
@@ -179,7 +178,6 @@ const CurrentRide = () => {
                 locationPermission={locationPermission}
             />
 
-            {/* Timeline */}
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
                     <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-violet-600">

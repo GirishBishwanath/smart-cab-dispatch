@@ -69,13 +69,6 @@ const createDriver = async (data) => {
     };
 };
 
-
-/*
-|--------------------------------------------------------------------------
-| Driver Profile
-|--------------------------------------------------------------------------
-*/
-
 const getMyProfile = async (userId) => {
     const driver = await Driver.findOne({
         user: userId,
