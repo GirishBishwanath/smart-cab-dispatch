@@ -17,6 +17,7 @@ const CurrentRide = () => {
     const {
         position: livePosition,
         error: locationError,
+        permission: locationPermission,
     } = useLocationBroadcaster(ride);
 
     const fetchRide = useCallback(async () => {
@@ -42,7 +43,7 @@ const CurrentRide = () => {
 
             setError(
                 err?.message ??
-                    "Unable to load current ride."
+                "Unable to load current ride."
             );
         } finally {
             setLoading(false);
@@ -175,6 +176,7 @@ const CurrentRide = () => {
                 ride={ride}
                 position={livePosition}
                 locationError={locationError}
+                locationPermission={locationPermission}
             />
 
             {/* Timeline */}

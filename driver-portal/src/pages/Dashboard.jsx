@@ -202,19 +202,27 @@ const Dashboard = () => {
                         {loading ? (
                             <div className="h-5 w-28 animate-pulse rounded bg-slate-100" />
                         ) : ride ? (
-                            <>
+                            <div className="space-y-1">
                                 <p className="text-sm font-bold text-slate-900">
                                     {formatStatus(ride.status)}
                                 </p>
 
-                                <p className="mt-0.5 truncate text-xs text-slate-500">
-                                    {ride.pickupLocation?.name ??
-                                        "Pickup"}{" "}
-                                    →{" "}
-                                    {ride.dropLocation?.name ??
-                                        "Destination"}
-                                </p>
-                            </>
+                                <div className="space-y-0.5 text-[11px] leading-4 text-slate-500">
+                                    <p className="break-words">
+                                        <span className="font-semibold text-slate-600">
+                                            Pickup:
+                                        </span>{" "}
+                                        {ride.pickupLocation?.name || "—"}
+                                    </p>
+
+                                    <p className="break-words">
+                                        <span className="font-semibold text-slate-600">
+                                            Destination:
+                                        </span>{" "}
+                                        {ride.dropLocation?.name || "—"}
+                                    </p>
+                                </div>
+                            </div>
                         ) : (
                             <p className="text-sm font-semibold text-slate-500">
                                 No active ride

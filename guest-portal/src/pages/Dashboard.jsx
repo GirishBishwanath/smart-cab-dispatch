@@ -137,16 +137,13 @@ const Dashboard = () => {
         }
     };
 
-    const firstName =
-        user?.fullName?.split(" ")[0] || "Guest";
+    const firstName = user?.fullName?.split(" ")[0] || "Guest";
 
     const showRequest =
         !ride &&
         request &&
         !request.ride &&
-        ["PENDING", "APPROVED", "REJECTED"].includes(
-            request.status
-        );
+        request.status === "PENDING";
 
     const showEmptyState = !loading && !ride && !showRequest;
 

@@ -14,8 +14,16 @@ const formatStatus = (value = "") =>
 
 const RideCard = ({ ride, onOpen }) => {
     const booking = ride?.rideRequest ?? {};
-    const passengers = booking.groupSize ?? ride?.guests?.[0]?.groupSize ?? 0;
-    const luggage = booking.luggageCount ?? ride?.guests?.[0]?.luggageCount ?? 0;
+
+    const passengers =
+        booking.groupSize ??
+        ride?.guests?.[0]?.groupSize ??
+        0;
+
+    const luggage =
+        booking.luggageCount ??
+        ride?.guests?.[0]?.luggageCount ??
+        0;
 
     return (
         <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -24,14 +32,13 @@ const RideCard = ({ ride, onOpen }) => {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Current ride
                     </p>
+
                     <p className="mt-1 truncate text-sm font-bold text-slate-900">
                         {formatStatus(ride?.tripType)}
                     </p>
                 </div>
 
-                <div className="shrink-0">
-                    <RideStatus status={ride?.status} />
-                </div>
+                <RideStatus status={ride?.status} />
             </div>
 
             <div className="px-5 py-6 sm:px-6 sm:py-7">
@@ -39,18 +46,19 @@ const RideCard = ({ ride, onOpen }) => {
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5 text-emerald-600">
                             <FaLocationDot className="size-3 shrink-0" />
+
                             <span className="text-[10px] font-bold uppercase tracking-wider">
                                 Pickup
                             </span>
                         </div>
 
-                        <p className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">
+                        <p className="mt-2 line-clamp-3 break-words text-base font-bold leading-6 tracking-tight text-slate-950 sm:line-clamp-2 sm:text-lg sm:leading-7">
                             {ride?.pickupLocation?.name || "—"}
                         </p>
                     </div>
 
                     <div className="flex justify-center">
-                        <div className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400 sm:size-11">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400 sm:size-11">
                             <FaArrowRight className="size-3.5 sm:size-4" />
                         </div>
                     </div>
@@ -58,19 +66,20 @@ const RideCard = ({ ride, onOpen }) => {
                     <div className="min-w-0 text-right">
                         <div className="flex items-center justify-end gap-1.5 text-red-500">
                             <FaLocationDot className="size-3 shrink-0" />
+
                             <span className="text-[10px] font-bold uppercase tracking-wider">
                                 Destination
                             </span>
                         </div>
 
-                        <p className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">
+                        <p className="mt-2 line-clamp-3 break-words text-base font-bold leading-6 tracking-tight text-slate-950 sm:line-clamp-2 sm:text-lg sm:leading-7">
                             {ride?.dropLocation?.name || "—"}
                         </p>
                     </div>
                 </div>
 
                 <div className="mt-6 grid grid-cols-3 gap-3 border-t border-slate-100 pt-5 sm:mt-7 sm:gap-4">
-                    <div className="min-w-0">
+                    <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             Passengers
                         </p>
@@ -79,7 +88,7 @@ const RideCard = ({ ride, onOpen }) => {
                         </p>
                     </div>
 
-                    <div className="min-w-0">
+                    <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             Luggage
                         </p>
@@ -92,8 +101,10 @@ const RideCard = ({ ride, onOpen }) => {
                         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             Vehicle
                         </p>
+
                         <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-semibold text-slate-900 sm:text-base">
                             <FaCarSide className="size-3 shrink-0 text-slate-400" />
+
                             <span className="truncate">
                                 {ride?.vehicle?.vehicleNumber || "—"}
                             </span>

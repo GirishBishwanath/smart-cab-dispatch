@@ -1,24 +1,18 @@
 import { useState } from "react";
 import {
-    FaLocationDot,
     FaUsers,
     FaSuitcaseRolling,
     FaRoute,
 } from "react-icons/fa6";
 
 import { TRIP_TYPES } from "../utils/constants.js";
+import LocationPicker from "./LocationPicker.jsx";
+
+const DEFAULT_CENTER = [23.8103, 86.4412];
 
 const INITIAL = {
-    pickupLocation: {
-        name: "",
-        latitude: 0,
-        longitude: 0,
-    },
-    dropLocation: {
-        name: "",
-        latitude: 0,
-        longitude: 0,
-    },
+    pickupLocation: { name: "", latitude: null, longitude: null },
+    dropLocation: { name: "", latitude: null, longitude: null },
     groupSize: 1,
     luggageCount: 0,
     tripType: "ON_DEMAND",
@@ -27,67 +21,85 @@ const INITIAL = {
 const field =
     "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100";
 
+const hasCoordinates = (location) =>
+    Number.isFinite(location?.latitude) &&
+    Number.isFinite(location?.longitude);
+
 const RideForm = ({ loading, onSubmit }) => {
     const [form, setForm] = useState(INITIAL);
+    const [locationError, setLocationError] = useState("");
 
-    const updateLocation = (type, value) => {
+    const updateLocation = (fieldName, location) => {
+        setLocationError("");
         setForm((previous) => ({
             ...previous,
-            [type]: {
-                ...previous[type],
-                name: value,
-            },
+            [fieldName]: location,
         }));
     };
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        onSubmit(form);
+
+        if (!hasCoordinates(form.pickupLocation)) {
+            setLocationError(
+                "Please search for or pin an exact pickup location."
+            );
+            return;
+        }
+
+        if (!hasCoordinates(form.dropLocation)) {
+            setLocationError(
+                "Please search for or pin an exact destination."
+            );
+            return;
+        }
+
+        if (
+            form.pickupLocation.latitude === form.dropLocation.latitude &&
+            form.pickupLocation.longitude === form.dropLocation.longitude
+        ) {
+            setLocationError(
+                "Pickup and destination cannot be the same location."
+            );
+            return;
+        }
+
+        onSubmit({
+            ...form,
+            groupSize: Math.max(1, Number(form.groupSize)),
+            luggageCount: Math.max(0, Number(form.luggageCount)),
+        });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-5 md:grid-cols-2">
-                <label>
-                    <span className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        <FaLocationDot className="size-3 text-emerald-500" />
-                        Pickup location
-                    </span>
+                <LocationPicker
+                    label="Pickup location"
+                    color="emerald"
+                    value={form.pickupLocation}
+                    onChange={(value) =>
+                        updateLocation("pickupLocation", value)
+                    }
+                    defaultCenter={DEFAULT_CENTER}
+                />
 
-                    <input
-                        required
-                        value={form.pickupLocation.name}
-                        onChange={(e) =>
-                            updateLocation(
-                                "pickupLocation",
-                                e.target.value
-                            )
-                        }
-                        placeholder="Airport, hotel or pickup point"
-                        className={field}
-                    />
-                </label>
-
-                <label>
-                    <span className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                        <FaLocationDot className="size-3 text-rose-500" />
-                        Destination
-                    </span>
-
-                    <input
-                        required
-                        value={form.dropLocation.name}
-                        onChange={(e) =>
-                            updateLocation(
-                                "dropLocation",
-                                e.target.value
-                            )
-                        }
-                        placeholder="Hotel, venue or destination"
-                        className={field}
-                    />
-                </label>
+                <LocationPicker
+                    label="Destination"
+                    color="rose"
+                    value={form.dropLocation}
+                    onChange={(value) =>
+                        updateLocation("dropLocation", value)
+                    }
+                    defaultCenter={DEFAULT_CENTER}
+                />
             </div>
+
+            {locationError && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+                    {locationError}
+                </div>
+            )}
 
             <div className="grid gap-5 sm:grid-cols-3">
                 <label>
@@ -101,10 +113,10 @@ const RideForm = ({ loading, onSubmit }) => {
                         min="1"
                         required
                         value={form.groupSize}
-                        onChange={(e) =>
+                        onChange={(event) =>
                             setForm((previous) => ({
                                 ...previous,
-                                groupSize: Number(e.target.value),
+                                groupSize: Number(event.target.value),
                             }))
                         }
                         className={field}
@@ -122,10 +134,10 @@ const RideForm = ({ loading, onSubmit }) => {
                         min="0"
                         required
                         value={form.luggageCount}
-                        onChange={(e) =>
+                        onChange={(event) =>
                             setForm((previous) => ({
                                 ...previous,
-                                luggageCount: Number(e.target.value),
+                                luggageCount: Number(event.target.value),
                             }))
                         }
                         className={field}
@@ -140,10 +152,10 @@ const RideForm = ({ loading, onSubmit }) => {
 
                     <select
                         value={form.tripType}
-                        onChange={(e) =>
+                        onChange={(event) =>
                             setForm((previous) => ({
                                 ...previous,
-                                tripType: e.target.value,
+                                tripType: event.target.value,
                             }))
                         }
                         className={field}

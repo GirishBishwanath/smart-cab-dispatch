@@ -22,44 +22,44 @@ const createRideRequest = async (userId, data) => {
         throw new ApiError(404, "Guest not found");
     }
 
-    const activeRide = await Ride.findOne({
-        guests: guest._id,
-        status: {
-            $in: [
-                "ASSIGNED",
-                "ARRIVED",
-                "PICKED_UP",
-            ],
-        },
-    }).lean();
-
-    if (activeRide) {
+    if (
+        !data?.pickupLocation ||
+        !Number.isFinite(data.pickupLocation.latitude) ||
+        !Number.isFinite(data.pickupLocation.longitude)
+    ) {
         throw new ApiError(
-            409,
-            "You already have an active ride. Please complete or cancel it before requesting another ride."
+            400,
+            "A valid pickup location with coordinates is required."
         );
     }
 
-    const activeRequest = await RideRequest.findOne({
-        guest: guest._id,
-        status: {
-            $in: ["PENDING", "APPROVED"],
-        },
-    }).lean();
-
-    if (activeRequest) {
+    if (
+        !data?.dropLocation ||
+        !Number.isFinite(data.dropLocation.latitude) ||
+        !Number.isFinite(data.dropLocation.longitude)
+    ) {
         throw new ApiError(
-            409,
-            "You already have an active ride request. Please wait for it to be completed, cancelled, or declined before requesting another ride."
+            400,
+            "A valid destination with coordinates is required."
+        );
+    }
+
+    if (
+        data.pickupLocation.latitude === data.dropLocation.latitude &&
+        data.pickupLocation.longitude === data.dropLocation.longitude
+    ) {
+        throw new ApiError(
+            400,
+            "Pickup and destination cannot be the same."
         );
     }
 
     const rideRequest = await RideRequest.create({
         guest: guest._id,
-        pickupLocation: data.pickupLocation ?? guest.pickupLocation,
-        dropLocation: data.dropLocation ?? guest.dropLocation,
-        groupSize: data.groupSize ?? guest.groupSize,
-        luggageCount: data.luggageCount ?? guest.luggageCount,
+        pickupLocation: data.pickupLocation,
+        dropLocation: data.dropLocation,
+        groupSize: Math.max(1, Number(data.groupSize ?? guest.groupSize)),
+        luggageCount: Math.max(0, Number(data.luggageCount ?? guest.luggageCount)),
         tripType: data.tripType ?? "ON_DEMAND",
     });
 

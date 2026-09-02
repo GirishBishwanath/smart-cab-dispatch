@@ -11,10 +11,7 @@ import bookingService from "../services/booking.service.js";
 import rideService from "../services/ride.service.js";
 import { ROUTES } from "../utils/constants.js";
 
-const ACTIVE_REQUEST_STATUSES = [
-    "PENDING",
-    "APPROVED",
-];
+const ACTIVE_REQUEST_STATUSES = ["PENDING", "APPROVED"];
 
 const BookRide = () => {
     const navigate = useNavigate();
@@ -46,8 +43,10 @@ const BookRide = () => {
             }
 
             const activeRequest = Array.isArray(requestResult)
-                ? requestResult.find((request) =>
-                    ACTIVE_REQUEST_STATUSES.includes(request.status)
+                ? requestResult.find(
+                    (request) =>
+                        ACTIVE_REQUEST_STATUSES.includes(request.status) &&
+                        !request.ride
                 )
                 : null;
 
@@ -141,7 +140,9 @@ const BookRide = () => {
                     <div className="flex flex-col gap-2 border-t border-slate-100 p-5 sm:flex-row sm:justify-end sm:px-6">
                         <button
                             type="button"
-                            onClick={() => navigate(ROUTES.CURRENT_RIDE)}
+                            onClick={() =>
+                                navigate(ROUTES.CURRENT_RIDE)
+                            }
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800"
                         >
                             View current ride
@@ -150,7 +151,9 @@ const BookRide = () => {
 
                         <button
                             type="button"
-                            onClick={() => navigate(ROUTES.DASHBOARD)}
+                            onClick={() =>
+                                navigate(ROUTES.DASHBOARD)
+                            }
                             className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                         >
                             Back to dashboard
@@ -174,7 +177,8 @@ const BookRide = () => {
                     </h1>
 
                     <p className="mt-1.5 text-sm text-slate-500">
-                        Dispatch will review your request and arrange a suitable ride.
+                        Dispatch will review your request and arrange a
+                        suitable ride.
                     </p>
                 </header>
 
@@ -188,14 +192,17 @@ const BookRide = () => {
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
-                        Once dispatch approves the request and assigns a driver,
-                        your active ride will appear in the Current Ride section.
+                        Once dispatch approves the request and assigns a
+                        driver, your active ride will appear in the Current
+                        Ride section.
                     </p>
 
                     <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:justify-center">
                         <button
                             type="button"
-                            onClick={() => navigate(ROUTES.CURRENT_RIDE)}
+                            onClick={() =>
+                                navigate(ROUTES.CURRENT_RIDE)
+                            }
                             className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800"
                         >
                             Check current ride
@@ -203,7 +210,9 @@ const BookRide = () => {
 
                         <button
                             type="button"
-                            onClick={() => navigate(ROUTES.DASHBOARD)}
+                            onClick={() =>
+                                navigate(ROUTES.DASHBOARD)
+                            }
                             className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                         >
                             Back to dashboard
