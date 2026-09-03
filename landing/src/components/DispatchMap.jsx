@@ -16,7 +16,7 @@ const DispatchMap = () => {
         </span>
       </div>
 
-      <div className="relative h-[330px] overflow-hidden bg-slate-950 sm:h-[370px]">
+      <div className="relative h-[300px] overflow-hidden bg-slate-950 sm:h-[330px]">
         <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:42px_42px]" />
         <div className="absolute inset-x-[-12%] top-[24%] h-16 rotate-[16deg] border-y border-white/5 bg-white/[0.015]" />
         <div className="absolute left-[-8%] top-[62%] h-24 w-[120%] -rotate-[12deg] border-y border-white/5 bg-white/[0.015]" />
@@ -28,10 +28,10 @@ const DispatchMap = () => {
           <path d="M78 294 C170 248, 207 160, 301 169 C367 176, 392 237, 452 219 C514 201, 508 126, 575 82" fill="none" stroke="rgba(96,165,250,.95)" strokeWidth="5" strokeLinecap="round" />
         </svg>
 
-        <div className="absolute left-[10%] top-[72%] flex size-9 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-4 ring-emerald-400/15">
+        <div className="absolute left-[12.2%] top-[79.5%] flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-4 ring-emerald-400/15">
           <FaLocationDot className="size-4" />
         </div>
-        <div className="absolute left-[70%] top-[17%] flex size-9 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 ring-4 ring-rose-400/15">
+        <div className="absolute left-[89.8%] top-[22.2%] flex size-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30 ring-4 ring-rose-400/15">
           <FaLocationDot className="size-4" />
         </div>
         <div className="absolute left-[60%] top-[55%] flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border border-blue-400/30 bg-blue-500 text-white shadow-lg shadow-blue-500/30">
