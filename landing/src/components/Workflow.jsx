@@ -20,23 +20,20 @@ const Workflow = () => {
           <p className="mt-4 text-base leading-relaxed text-slate-400">Every stage has an owner, a state and a clear next action — while the important changes stay synchronized across portals.</p>
         </div>
 
-        <div className="relative mt-12">
-          <div className="absolute left-6 top-0 hidden h-full w-px bg-gradient-to-b from-blue-400/40 via-white/10 to-emerald-400/30 lg:block" aria-hidden="true" />
-          <ol className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-8">
-            {STEPS.map(({ icon: Icon, number, title, description }, index) => (
-              <li key={number} className="group relative rounded-2xl border border-white/10 bg-white/[0.025] p-5 transition hover:border-white/20 hover:bg-white/[0.04] lg:min-h-[178px]">
-                <div className="flex items-center gap-3">
-                  <span className={`relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 ${index === STEPS.length - 1 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : "bg-blue-500/10 text-blue-400 ring-blue-500/20"}`}>
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="text-[10px] font-black tracking-[0.16em] text-slate-600">STEP {number}</span>
-                </div>
-                <h3 className="mt-5 text-base font-bold text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <ol className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          {STEPS.map(({ icon: Icon, number, title, description }, index) => (
+            <li key={number} className="group rounded-2xl border border-white/10 bg-white/[0.025] p-5 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.04] lg:min-h-[174px]">
+              <div className="flex items-center gap-3">
+                <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ring-1 ${index === STEPS.length - 1 ? "bg-emerald-500/10 text-emerald-400 ring-emerald-500/20" : "bg-blue-500/10 text-blue-400 ring-blue-500/20"}`}>
+                  <Icon className="size-4" />
+                </span>
+                <span className="text-[10px] font-black tracking-[0.16em] text-slate-600">STEP {number}</span>
+              </div>
+              <h3 className="mt-5 text-base font-bold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
