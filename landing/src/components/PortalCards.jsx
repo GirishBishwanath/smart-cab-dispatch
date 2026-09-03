@@ -1,4 +1,4 @@
-import { FaArrowRightLong, FaUser, FaCarSide, FaUserShield, FaMapLocationDot, FaRoute, FaShieldHalved, FaChartLine } from "react-icons/fa6";
+import { FaArrowRightLong, FaUser, FaCarSide, FaUserShield } from "react-icons/fa6";
 
 import { PORTAL_URLS } from "../utils/constants.js";
 
@@ -41,7 +41,7 @@ const PortalCards = () => (
                 <ul className="mt-7 space-y-3 border-t border-white/10 pt-6">
                   {features.map((feature) => <li key={feature} className="flex items-center gap-3 text-sm font-medium text-slate-300"><span className="size-1.5 rounded-full bg-slate-500" />{feature}</li>)}
                 </ul>
-                <a href={href} className={`mt-8 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition ${color.button}`}>Open portal <FaArrowRightLong className="size-3.5" /></a>
+                <a href={href} className={`mt-8 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-white/30 ${color.button}`}>Open portal <FaArrowRightLong className="size-3.5" /></a>
               </div>
             </article>
           );
