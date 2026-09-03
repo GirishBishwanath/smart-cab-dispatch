@@ -1,4 +1,4 @@
-import { FaBolt, FaLocationDot, FaShieldHalved, FaUsersGear, FaChartLine, FaCarSide, FaRoute } from "react-icons/fa6";
+import { FaBolt, FaLocationDot, FaShieldHalved, FaUsersGear, FaChartLine, FaRoute } from "react-icons/fa6";
 
 const FEATURES = [
   { icon: FaBolt, label: "Dispatch", title: "Capacity-aware assignment", description: "Approved requests are matched against driver availability, vehicle seats, and luggage capacity before a ride is created." },
