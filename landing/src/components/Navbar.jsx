@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 import { FaBars, FaXmark, FaArrowRightLong, FaChevronDown, FaUser, FaCarSide, FaUserShield, FaListCheck, FaRoute, FaCircleInfo, FaEnvelope } from "react-icons/fa6";
@@ -113,14 +113,13 @@ const SignInMenu = () => {
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const menuButtonRef = useRef(null);
-  const closeMobileMenu = () => setMobileOpen(false);
+  const closeMobileMenu = useCallback(() => setMobileOpen(false), []);
 
   useEffect(() => { const onScroll = () => setScrolled(window.scrollY > 12); onScroll(); window.addEventListener("scroll", onScroll, { passive: true }); return () => window.removeEventListener("scroll", onScroll); }, []);
   useEffect(() => { document.body.style.overflow = mobileOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [mobileOpen]);
 
   return <>
-    <header className={`sticky top-0 z-50 border-b transition-colors ${scrolled ? "border-white/10 bg-slate-950/85 backdrop-blur-xl" : "border-transparent bg-slate-950/40 backdrop-blur-sm"} `}>
+    <header className={`sticky top-0 z-50 border-b transition-colors ${scrolled ? "border-white/10 bg-slate-950/85 backdrop-blur-xl" : "border-transparent bg-slate-950/40 backdrop-blur-sm"}`}>
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to={ROUTES.HOME} className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-slate-950">
           <img src="/smart-cab-logo.png" alt="Smart Cab Dispatch" className="logo-on-dark h-8 w-8 object-contain" />
@@ -129,7 +128,6 @@ const Navbar = () => {
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">{NAV_LINKS.map((link) => <NavLink key={link.label} to={link.to} className={({ isActive }) => `rounded-lg px-3.5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-white/30 ${isActive ? "text-white" : "text-slate-400 hover:text-white"}`}>{link.label}</NavLink>)}</nav>
         <div className="hidden items-center gap-2 md:flex"><SignInMenu /><a href={PORTAL_URLS.GUEST} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-950">Book a ride <FaArrowRightLong className="size-3.5" /></a></div>
         <button
-          ref={menuButtonRef}
           type="button"
           onClick={() => setMobileOpen(true)}
           className="flex size-10 items-center justify-center rounded-xl border border-white/10 text-slate-200 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-white/40 md:hidden"
