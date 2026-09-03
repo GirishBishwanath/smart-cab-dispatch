@@ -1,85 +1,42 @@
-import {
-  FaBolt,
-  FaLocationDot,
-  FaShieldHalved,
-  FaUsersGear,
-  FaChartLine,
-  FaCarSide,
-} from "react-icons/fa6";
+import { FaBolt, FaLocationDot, FaShieldHalved, FaUsersGear, FaChartLine, FaCarSide, FaRoute } from "react-icons/fa6";
 
 const FEATURES = [
-  {
-    icon: FaBolt,
-    title: "Automatic dispatch engine",
-    description:
-      "Every approved request is matched to an available driver by seat and luggage capacity — no manual assignment.",
-  },
-  {
-    icon: FaLocationDot,
-    title: "Real-time ride tracking",
-    description:
-      "Socket-driven updates move a ride from assigned to arrived to completed live, across every connected portal.",
-  },
-  {
-    icon: FaUsersGear,
-    title: "Role-based portals",
-    description:
-      "Guests, drivers, and admins each get a dedicated workspace built around what their role actually needs to do.",
-  },
-  {
-    icon: FaShieldHalved,
-    title: "Secure by default",
-    description:
-      "JWT authentication, hashed credentials, and role-scoped routes protect every action across the platform.",
-  },
-  {
-    icon: FaCarSide,
-    title: "Full fleet visibility",
-    description:
-      "Track driver availability, vehicle capacity, and active trips from a single operational dashboard.",
-  },
-  {
-    icon: FaChartLine,
-    title: "Operational analytics",
-    description:
-      "Ride volume, completion rates, and cancellation sources — surfaced for dispatchers, not buried in logs.",
-  },
+  { icon: FaBolt, label: "Dispatch", title: "Capacity-aware assignment", description: "Approved requests are matched against driver availability, vehicle seats, and luggage capacity before a ride is created." },
+  { icon: FaLocationDot, label: "Realtime", title: "Live driver location", description: "Socket-powered location updates keep active rides aligned across guest, driver, and operations views." },
+  { icon: FaRoute, label: "Routing", title: "Route, distance & ETA", description: "Driving routes and journey metrics come from the routing layer instead of placeholder estimates." },
+  { icon: FaUsersGear, label: "Portals", title: "Three focused workspaces", description: "Guests, drivers, and admins get role-specific interfaces backed by the same ride lifecycle." },
+  { icon: FaShieldHalved, label: "Security", title: "Role-scoped access", description: "JWT authentication and authorization boundaries protect portal actions and operational data." },
+  { icon: FaChartLine, label: "Operations", title: "Fleet visibility", description: "Dispatch teams can see driver state, vehicles, active rides, and operational history from one place." },
 ];
 
-const Features = () => {
-  return (
-    <section id="features" className="relative bg-slate-950 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <span className="text-xs font-bold uppercase tracking-[0.14em] text-blue-400">
-            Built for real operations
-          </span>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
-            One dispatch engine, three portals that actually talk to each other.
-          </h2>
+const Features = () => (
+  <section id="features" className="relative overflow-hidden bg-slate-950 py-24 sm:py-32">
+    <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-blue-500/[0.06] blur-3xl" aria-hidden="true" />
+    <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-blue-400">The platform</span>
+          <h2 className="mt-4 text-3xl font-black tracking-[-0.025em] text-white sm:text-4xl lg:text-5xl">The infrastructure behind a smoother ride.</h2>
         </div>
-
-        <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map(({ icon: Icon, title, description }) => (
-            <div
-              key={title}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <div className="flex size-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20">
-                <Icon className="size-4.5" />
-              </div>
-              <h3 className="mt-5 text-base font-bold text-white">
-                {title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-400">
-                {description}
-              </p>
-            </div>
-          ))}
-        </div>
+        <p className="max-w-2xl text-base leading-7 text-slate-400 lg:justify-self-end">Built around the real operational moments that matter: approving requests, selecting the right vehicle, moving location data, drawing the route, and keeping every portal in sync.</p>
       </div>
-    </section>
-  );
-};
+
+      <div className="mt-14 grid overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] sm:grid-cols-2 lg:grid-cols-3">
+        {FEATURES.map(({ icon: Icon, label, title, description }, index) => (
+          <article key={title} className={`group relative p-6 sm:p-7 ${index % 3 !== 2 ? "lg:border-r" : ""} ${index < 3 ? "lg:border-b" : ""} ${index % 2 === 0 ? "sm:border-r lg:border-r" : "sm:border-r-0 lg:border-r-0"} border-white/10`}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</span>
+              <span className="flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-blue-300 transition group-hover:border-blue-400/25 group-hover:bg-blue-400/10">
+                <Icon className="size-4" />
+              </span>
+            </div>
+            <h3 className="mt-8 text-lg font-bold text-white">{title}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+);
 
 export default Features;
