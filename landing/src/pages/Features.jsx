@@ -1,5 +1,5 @@
 import { FaMapLocationDot, FaRoute, FaBolt, FaCarSide } from "react-icons/fa6";
-import FeaturesSection from "../components/Features.jsx";
+import FeaturesSection from "../components/FeatureGrid.jsx";
 
 const CAPABILITIES = [
   [FaMapLocationDot, "Map", "Precise pickup + destination"],

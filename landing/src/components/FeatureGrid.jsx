@@ -3,7 +3,6 @@ import {
   FaLocationDot,
   FaShieldHalved,
   FaUsersGear,
-  FaChartLine,
   FaCarSide,
   FaRoute,
 } from "react-icons/fa6";
