@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+    FaClock,
     FaMapLocationDot,
     FaRoute,
     FaShieldHalved,
@@ -17,17 +18,16 @@ const INITIAL_FORM = { email: "", password: "" };
 const DEMO_CREDENTIALS = { email: "girish@smartcab.com", password: "Guest123" };
 
 const FEATURES = [
-    { icon: FaMapLocationDot, title: "Travel", text: "Simple trip management" },
-    { icon: FaRoute, title: "Rides", text: "Follow your journey" },
-    { icon: FaShieldHalved, title: "Secure", text: "Protected guest access" },
+    { icon: FaMapLocationDot, title: "Map booking", text: "Pin your trip" },
+    { icon: FaRoute, title: "Live route", text: "Follow progress" },
+    { icon: FaClock, title: "ETA", text: "Know what's next" },
 ];
 
 const validate = ({ email, password }) => {
     const errors = {};
 
     if (!email.trim()) errors.email = "Email is required";
-    else if (!/^\S+@\S+\.\S+$/.test(email.trim()))
-        errors.email = "Enter a valid email address";
+    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) errors.email = "Enter a valid email address";
 
     if (!password) errors.password = "Password is required";
 
@@ -35,10 +35,7 @@ const validate = ({ email, password }) => {
 };
 
 const Logo = ({ size = "md", invert = false }) => (
-    <div
-        className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"
-            }`}
-    >
+    <div className={`flex shrink-0 items-center justify-center overflow-hidden bg-transparent ${size === "sm" ? "size-11 rounded-xl" : "size-14 rounded-2xl"}`}>
         <img
             src="/smart-cab-logo.png"
             alt="Smart Cab Dispatch"
@@ -49,9 +46,7 @@ const Logo = ({ size = "md", invert = false }) => (
 
 const Field = ({ id, label, error, className = "", ...props }) => (
     <div className="flex min-w-0 flex-col gap-1.5">
-        <label htmlFor={id} className="text-sm font-medium text-slate-700">
-            {label}
-        </label>
+        <label htmlFor={id} className="text-sm font-medium text-slate-700">{label}</label>
 
         <input
             id={id}
@@ -78,21 +73,13 @@ const Login = () => {
     const [submitting, setSubmitting] = useState(false);
 
     const handleChange = ({ target }) => {
-        setForm((previous) => ({
-            ...previous,
-            [target.name]: target.value,
-        }));
-        setFieldErrors((previous) => ({
-            ...previous,
-            [target.name]: undefined,
-        }));
+        setForm((previous) => ({ ...previous, [target.name]: target.value }));
+        setFieldErrors((previous) => ({ ...previous, [target.name]: undefined }));
         setFormError("");
     };
 
     const redirect = (user) => {
-        const redirectTo =
-            location.state?.from?.pathname ?? roleHomePath(user.role);
-
+        const redirectTo = location.state?.from?.pathname ?? roleHomePath(user.role);
         navigate(redirectTo, { replace: true });
     };
 
@@ -119,9 +106,7 @@ const Login = () => {
             const user = await login(form.email.trim(), form.password);
             redirect(user);
         } catch (error) {
-            setFormError(
-                error?.message || "Unable to sign in. Please try again."
-            );
+            setFormError(error?.message || "Unable to sign in. Please try again.");
             setSubmitting(false);
         }
     };
@@ -134,9 +119,7 @@ const Login = () => {
             const user = await googleLogin(idToken);
             redirect(user);
         } catch (error) {
-            setFormError(
-                error?.message || "Unable to continue with Google."
-            );
+            setFormError(error?.message || "Unable to continue with Google.");
             setSubmitting(false);
         }
     };
@@ -152,12 +135,8 @@ const Login = () => {
                             <a href={LANDING_URL} className="flex items-center gap-3">
                                 <Logo invert />
                                 <div>
-                                    <p className="text-base font-bold tracking-tight text-white">
-                                        Smart Cab
-                                    </p>
-                                    <p className="mt-0.5 text-xs text-slate-400">
-                                        Dispatch Platform
-                                    </p>
+                                    <p className="text-base font-bold tracking-tight text-white">Smart Cab</p>
+                                    <p className="mt-0.5 text-xs text-slate-400">Dispatch Platform</p>
                                 </div>
                             </a>
 
@@ -169,34 +148,27 @@ const Login = () => {
 
                         <div className="my-auto max-w-[510px]">
                             <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
-                                Guest Travel Portal
+                                For Guests
                             </p>
 
                             <h1 className="mt-4 text-[42px] font-bold leading-[1.08] tracking-tight text-white xl:text-5xl">
-                                Travel comfortably. Ride confidently.
+                                Book, track and arrive.
                             </h1>
 
                             <p className="mt-5 max-w-[480px] text-[15px] leading-7 text-slate-400">
-                                Manage your ride requests, view your assigned cab
-                                and stay informed throughout your journey.
+                                Choose your trip locations, follow the assigned cab and
+                                keep your journey details in one place.
                             </p>
                         </div>
 
                         <div className="grid grid-cols-3 gap-3">
                             {FEATURES.map(({ icon: Icon, title, text }) => (
-                                <div
-                                    key={title}
-                                    className="rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3.5"
-                                >
+                                <div key={title} className="rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3.5">
                                     <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/10">
                                         <Icon className="size-4 text-emerald-400" />
                                     </div>
-                                    <p className="mt-3 text-sm font-semibold text-white">
-                                        {title}
-                                    </p>
-                                    <p className="mt-0.5 text-xs text-slate-500">
-                                        {text}
-                                    </p>
+                                    <p className="mt-3 text-sm font-semibold text-white">{title}</p>
+                                    <p className="mt-0.5 text-xs text-slate-500">{text}</p>
                                 </div>
                             ))}
                         </div>
@@ -209,12 +181,8 @@ const Login = () => {
                             <a href={LANDING_URL} className="flex items-center gap-3">
                                 <Logo size="sm" />
                                 <div>
-                                    <p className="text-base font-bold text-slate-950">
-                                        Smart Cab
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        Dispatch Platform
-                                    </p>
+                                    <p className="text-base font-bold text-slate-950">Smart Cab</p>
+                                    <p className="text-xs text-slate-500">Dispatch Platform</p>
                                 </div>
                             </a>
 
@@ -225,27 +193,14 @@ const Login = () => {
                         </div>
 
                         <div className="mb-5">
-                            <p className="text-sm font-semibold text-emerald-600">
-                                Guest Portal
-                            </p>
-                            <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950 sm:text-[32px]">
-                                Welcome back
-                            </h2>
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                                Sign in to manage your Smart Cab journey.
-                            </p>
+                            <p className="text-sm font-semibold text-emerald-600">Guest Portal</p>
+                            <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950 sm:text-[32px]">Welcome back</h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-500">Sign in to manage your Smart Cab journey.</p>
                         </div>
 
-                        <form
-                            onSubmit={handleSubmit}
-                            noValidate
-                            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-6"
-                        >
+                        <form onSubmit={handleSubmit} noValidate className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-6">
                             {formError && (
-                                <div
-                                    role="alert"
-                                    className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
-                                >
+                                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
                                     {formError}
                                 </div>
                             )}
@@ -283,15 +238,9 @@ const Login = () => {
                                     className="mt-1 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {submitting && (
-                                        <span
-                                            role="status"
-                                            aria-label="Loading"
-                                            className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
-                                        />
+                                        <span role="status" aria-label="Loading" className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
                                     )}
-                                    {submitting
-                                        ? "Signing in…"
-                                        : "Sign in to Guest Portal"}
+                                    {submitting ? "Signing in…" : "Sign in to Guest Portal"}
                                 </button>
 
                                 <button
@@ -307,25 +256,16 @@ const Login = () => {
 
                             <div className="my-4 flex items-center gap-3 sm:my-5">
                                 <div className="h-px flex-1 bg-slate-200" />
-                                <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                                    Or continue with
-                                </span>
+                                <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-slate-400">Or continue with</span>
                                 <div className="h-px flex-1 bg-slate-200" />
                             </div>
 
-                            <GoogleButton
-                                disabled={submitting}
-                                onSuccess={handleGoogle}
-                            />
+                            <GoogleButton disabled={submitting} onSuccess={handleGoogle} />
                         </form>
 
                         <div className="mt-4 text-center text-sm text-slate-500">
                             New to Smart Cab?{" "}
-                            <button
-                                type="button"
-                                onClick={() => navigate(ROUTES.SIGNUP)}
-                                className="cursor-pointer font-bold text-emerald-600 hover:text-emerald-700"
-                            >
+                            <button type="button" onClick={() => navigate(ROUTES.SIGNUP)} className="cursor-pointer font-bold text-emerald-600 hover:text-emerald-700">
                                 Create an account
                                 <FaArrowRight className="ml-1 inline size-3" />
                             </button>

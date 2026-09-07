@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  FaCarSide,
+  FaClockRotateLeft,
+  FaMapLocationDot,
   FaShieldHalved,
-  FaChartLine,
+  FaTowerBroadcast,
   FaArrowLeft,
 } from "react-icons/fa6";
 
@@ -18,21 +19,9 @@ const INITIAL_FORM = { email: "", password: "" };
 const DEMO_CREDENTIALS = { email: "admin@smartcab.com", password: "Admin123" };
 
 const FEATURES = [
-  {
-    icon: FaCarSide,
-    title: "Fleet",
-    text: "Driver visibility",
-  },
-  {
-    icon: FaChartLine,
-    title: "Operations",
-    text: "Live overview",
-  },
-  {
-    icon: FaShieldHalved,
-    title: "Secure",
-    text: "Role-based access",
-  },
+  { icon: FaTowerBroadcast, title: "Dispatch", text: "Assign with context" },
+  { icon: FaMapLocationDot, title: "Live map", text: "Watch active rides" },
+  { icon: FaClockRotateLeft, title: "History", text: "Review completed trips" },
 ];
 
 const validate = ({ email, password }) => {
@@ -82,16 +71,8 @@ const Login = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-
-    setFieldErrors((previous) => ({
-      ...previous,
-      [name]: undefined,
-    }));
-
+    setForm((previous) => ({ ...previous, [name]: value }));
+    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
     setFormError("");
   };
 
@@ -115,20 +96,12 @@ const Login = () => {
     setFormError("");
 
     try {
-      const user = await login(
-        form.email.trim(),
-        form.password
-      );
-
-      const redirectTo =
-        location.state?.from?.pathname ??
-        roleHomePath(user.role);
+      const user = await login(form.email.trim(), form.password);
+      const redirectTo = location.state?.from?.pathname ?? roleHomePath(user.role);
 
       navigate(redirectTo, { replace: true });
     } catch (error) {
-      setFormError(
-        error?.message || "Unable to sign in. Please try again."
-      );
+      setFormError(error?.message || "Unable to sign in. Please try again.");
       setSubmitting(false);
     }
   };
@@ -144,13 +117,8 @@ const Login = () => {
               <a href={LANDING_URL} className="flex items-center gap-3">
                 <Logo size="md" invert />
                 <div>
-                  <p className="text-base font-bold tracking-tight text-white">
-                    Smart Cab
-                  </p>
-
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    Dispatch Platform
-                  </p>
+                  <p className="text-base font-bold tracking-tight text-white">Smart Cab</p>
+                  <p className="mt-0.5 text-xs text-slate-400">Dispatch Platform</p>
                 </div>
               </a>
 
@@ -162,36 +130,28 @@ const Login = () => {
 
             <div className="mt-auto mb-auto max-w-[510px]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-400">
-                Operations Control Center
+                For Operations
               </p>
 
               <h1 className="mt-4 text-[42px] font-bold leading-[1.08] tracking-tight text-white xl:text-5xl">
-                Run every ride from one place.
+                See the fleet.<br />Control the flow.
               </h1>
 
               <p className="mt-5 max-w-[480px] text-[15px] leading-7 text-slate-400">
-                Monitor drivers, manage guests, review incoming ride
-                requests and keep fleet operations moving.
+                Approve requests, oversee drivers and rides, and keep the
+                operation visible from one control center.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               {FEATURES.map(({ icon: Icon, title, text }) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3.5"
-                >
+                <div key={title} className="rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3.5">
                   <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/10">
                     <Icon className="size-4 text-blue-400" />
                   </div>
 
-                  <p className="mt-3 text-sm font-semibold text-white">
-                    {title}
-                  </p>
-
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {text}
-                  </p>
+                  <p className="mt-3 text-sm font-semibold text-white">{title}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{text}</p>
                 </div>
               ))}
             </div>
@@ -204,13 +164,8 @@ const Login = () => {
               <a href={LANDING_URL} className="flex items-center gap-3">
                 <Logo size="sm" />
                 <div>
-                  <p className="text-base font-bold text-slate-950">
-                    Smart Cab
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    Dispatch Platform
-                  </p>
+                  <p className="text-base font-bold text-slate-950">Smart Cab</p>
+                  <p className="text-xs text-slate-500">Dispatch Platform</p>
                 </div>
               </a>
 
@@ -221,24 +176,12 @@ const Login = () => {
             </div>
 
             <div className="mb-6">
-              <p className="text-sm font-semibold text-blue-600">
-                Admin Portal
-              </p>
-
-              <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950 sm:text-[32px]">
-                Welcome back
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Sign in to manage Smart Cab operations.
-              </p>
+              <p className="text-sm font-semibold text-blue-600">Admin Portal</p>
+              <h2 className="mt-1.5 text-[30px] font-bold tracking-tight text-slate-950 sm:text-[32px]">Welcome back</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Sign in to manage Smart Cab operations.</p>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              noValidate
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-6"
-            >
+            <form onSubmit={handleSubmit} noValidate className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-6">
               {formError && (
                 <div className="mb-4">
                   <Alert>{formError}</Alert>
@@ -277,9 +220,7 @@ const Login = () => {
                   loading={submitting}
                   className="mt-2 h-11 w-full rounded-xl !bg-blue-600 !text-white shadow-sm hover:!bg-blue-700"
                 >
-                  {submitting
-                    ? "Signing in…"
-                    : "Sign in to Admin Portal"}
+                  {submitting ? "Signing in…" : "Sign in to Admin Portal"}
                 </Button>
 
                 <button
