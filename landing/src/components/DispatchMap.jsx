@@ -11,7 +11,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   FaCarSide,
-  FaChevronRight,
   FaCircleMinus,
   FaCirclePlus,
   FaCloud,
@@ -57,8 +56,7 @@ const ROUTE_WAYPOINTS = [
 const MAP_CENTER = [19.015, 72.9];
 const MAP_ZOOM = 10.5;
 
-const TILE_URL =
-  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
@@ -68,11 +66,11 @@ const METRICS = [
     icon: FaRoute,
     label: "Route",
     value: "28.8 km",
-    detail: "From Airport to The Taj Mahal Palace",
+    detail: "Airport → Taj Mahal Palace",
   },
   {
     icon: FaClock,
-    label: "Estimated arrival",
+    label: "ETA",
     value: "49 min",
     detail: "Estimated driving time",
   },
@@ -86,8 +84,8 @@ const METRICS = [
   {
     icon: FaCarSide,
     label: "Vehicle",
-    value: "6 seats",
-    detail: "Sedan",
+    value: "Sedan",
+    detail: "6 seats",
   },
 ];
 
@@ -198,27 +196,22 @@ const LocationCard = ({
   pickup = false,
 }) => (
   <div
-    className={`pointer-events-none rounded-lg bg-slate-900/95 px-2.5 py-2 shadow-xl ${
-      pickup
-        ? "w-[176px] border-1 border-emerald-400/80 sm:w-[204px]"
-        : "w-[146px] border-1 border-rose-400/80 sm:w-[176px]"
-    }`}
+    className={`pointer-events-none rounded-lg bg-slate-900/95 px-2.5 py-2 shadow-xl ${pickup
+        ? "w-[184px] border-1 border-emerald-400/80 sm:w-[198px]"
+        : "w-[154px] border-1 border-rose-400/80 sm:w-[162px]"
+      }`}
   >
     <div className="flex items-center gap-2">
-      <span
-        className={`flex size-5 shrink-0 items-center justify-center rounded-md ${iconBg} ${iconColor}`}
-      >
+      <span className={`flex size-5 shrink-0 items-center justify-center rounded-md ${iconBg} ${iconColor}`}>
         <Icon className="size-2.5 sm:size-3" />
       </span>
 
       <div className="min-w-0 flex-1">
-        <p
-          className={`text-[8px] font-medium uppercase tracking-[0.12em] ${eyebrowClass}`}
-        >
+        <p className={`text-[8px] font-medium uppercase tracking-[0.12em] ${eyebrowClass}`}>
           {eyebrow}
         </p>
 
-        <p className="mt-0.5 text-[10px] font-medium leading-[1.3] text-white sm:text-[11px]">
+        <p className="mt-0.5 text-[10px] font-medium tracking-[0.03em] leading-[1.3] text-white sm:text-[11px]">
           {lines.map((line) => (
             <span key={line} className="block whitespace-nowrap">
               {line}
@@ -226,12 +219,10 @@ const LocationCard = ({
           ))}
         </p>
 
-        <p className="mt-0.5 text-[8px] text-slate-400 sm:text-[9px]">
+        <p className="mt-0.5 text-[8px] tracking-[0.03em] text-slate-400 sm:text-[9px]">
           {city}
         </p>
       </div>
-
-      <FaChevronRight className="hidden size-2 shrink-0 text-slate-500 sm:block" />
     </div>
   </div>
 );
@@ -256,9 +247,21 @@ const DispatchMap = () => {
           display: none;
         }
 
-        @media (max-width: 639px) {
+         @media (max-width: 639px) {
           .scd-mobile-tooltip .leaflet-tooltip-content {
             max-width: 100%;
+          }
+        }
+
+        .scd-route-shine {
+          filter: drop-shadow(0 0 4px rgba(191, 219, 254, 0.9))
+            drop-shadow(0 0 10px rgba(59, 130, 246, 0.6));
+          animation: scd-route-shine 3.4s linear infinite;
+        }
+
+        @keyframes scd-route-shine {
+          to {
+            stroke-dashoffset: -900;
           }
         }
       `}</style>
@@ -288,18 +291,18 @@ const DispatchMap = () => {
           </span>
 
           <span className="text-left">
-            <span className="block whitespace-nowrap text-[9px] font-medium leading-tight text-emerald-300 sm:text-[10px]">
-              Tracking in progress
+            <span className="block whitespace-nowrap text-[9px] font-medium tracking-[0.03em] leading-tight text-emerald-300 sm:text-[10px]">
+              Ride in progress
             </span>
 
-            <span className="hidden text-[8px] leading-tight text-emerald-400/70 sm:block">
-              Live route preview
+            <span className="hidden text-[8px] tracking-[0.03em] leading-tight text-emerald-400/70 sm:block">
+              Live route
             </span>
           </span>
         </span>
       </div>
 
-      <div className="relative h-[400px] w-full sm:h-[340px] lg:h-[380px]">
+      <div className="relative h-[400px] w-full sm:h-[360px] lg:h-[380px]">
         <MapContainer
           center={MAP_CENTER}
           zoom={MAP_ZOOM}
@@ -343,6 +346,18 @@ const DispatchMap = () => {
               weight: 3,
               opacity: 0.95,
               lineCap: "round",
+            }}
+          />
+
+          <Polyline
+            positions={ROUTE_WAYPOINTS}
+            pathOptions={{
+              color: "#dbeafe",
+              weight: 3,
+              opacity: 0.95,
+              lineCap: "round",
+              dashArray: "36 860",
+              className: "scd-route-shine",
             }}
           />
 
@@ -401,18 +416,18 @@ const DispatchMap = () => {
               offset={[10, 0]}
               className="scd-card-tooltip"
             >
-              <div className="pointer-events-none flex w-[160px] items-center gap-2 rounded-lg border border-blue-400/25 bg-slate-900/95 px-2.5 py-2 shadow-xl sm:w-[176px] sm:px-3 sm:py-2">
+              <div className="pointer-events-none flex w-[162px] items-center gap-2 rounded-lg border border-blue-400/25 bg-slate-900/95 px-2.5 py-2 shadow-xl sm:w-[176px] sm:px-3 sm:py-2">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-blue-500/15 text-white/90">
                   <FaCarSide className="size-2.5" />
                 </span>
 
                 <div className="min-w-0">
-                  <p className="whitespace-nowrap text-[10px] font-medium leading-none text-white sm:text-[11px]">
-                    On the way to destination
+                  <p className="whitespace-nowrap text-[10px] font-medium tracking-[0.03em] leading-none text-white sm:text-[11px]">
+                    Heading to destination
                   </p>
 
-                  <p className="mt-1 whitespace-nowrap text-[8px] text-blue-300 sm:text-[9px]">
-                    23 min to destination
+                  <p className="mt-1 whitespace-nowrap text-[8px] tracking-[0.05em] text-blue-300 sm:text-[9px]">
+                    23 min remaining
                   </p>
                 </div>
               </div>
@@ -424,8 +439,8 @@ const DispatchMap = () => {
           <FaCloud className="size-3.5 text-slate-300" />
 
           <div className="leading-tight">
-            <p className="text-[10px] font-medium text-white">26°C</p>
-            <p className="text-[8px] text-slate-400">Mumbai</p>
+            <p className="text-[10px] font-medium tracking-[0.03em] text-white">26°C</p>
+            <p className="text-[8px] tracking-[0.03em] text-slate-400">Mumbai</p>
           </div>
         </div>
 
@@ -435,12 +450,12 @@ const DispatchMap = () => {
           </span>
 
           <div>
-            <p className="whitespace-nowrap text-[9px] font-medium text-white sm:text-[10px]">
-              Live location updates
+            <p className="whitespace-nowrap text-[9px] font-medium tracking-[0.03em] text-white sm:text-[10px]">
+              Driver location
             </p>
 
-            <p className="hidden text-[8px] text-slate-500 sm:block">
-              Driver location, route and ETA
+            <p className="hidden text-[8px] tracking-[0.03em] text-slate-500 sm:block">
+              Live • Route • ETA
             </p>
           </div>
         </div>
@@ -457,24 +472,18 @@ const DispatchMap = () => {
             </p>
 
             <div className="mt-0.5 flex items-center gap-1.5">
-              <Icon
-                className={`size-2.5 shrink-0 sm:size-3 ${
-                  accent ? "text-emerald-400" : "text-blue-400"
-                }`}
-              />
+              <Icon className={`size-2.5 shrink-0 sm:size-3 ${accent ? "text-emerald-400" : "text-blue-400"}`} />
 
-              <p
-                className={`truncate text-xs font-medium sm:text-sm ${
-                  accent ? "text-emerald-300" : "text-white"
-                }`}
-              >
+              <p className={`truncate text-xs font-medium tracking-[0.02em] sm:text-sm ${accent ? "text-emerald-300" : "text-white"}`}>
                 {value}
               </p>
             </div>
 
-            <p className="mt-0.5 truncate text-[8px] text-slate-500 sm:text-[9px]">
-              {detail}
-            </p>
+            {detail && (
+              <p className="mt-0.5 truncate text-[8px] tracking-[0.02em] text-slate-500 sm:text-[9px]">
+                {detail}
+              </p>
+            )}
           </div>
         ))}
       </div>
