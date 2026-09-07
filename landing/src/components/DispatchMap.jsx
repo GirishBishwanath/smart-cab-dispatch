@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   MapContainer,
   Marker,
@@ -146,6 +146,52 @@ const MapResizeHandler = () => {
   return null;
 };
 
+const RouteShine = () => {
+  const routeRef = useRef(null);
+
+  useEffect(() => {
+    const path = routeRef.current?.getElement();
+
+    if (!path) return;
+
+    const duration = 3400;
+    const dashLength = 36;
+    const gapLength = 860;
+    const patternLength = dashLength + gapLength;
+    let frameId;
+    let startTime = null;
+
+    const animate = (time) => {
+      if (startTime === null) startTime = time;
+
+      const progress = ((time - startTime) % duration) / duration;
+      const offset = -(progress * patternLength);
+
+      path.style.strokeDashoffset = `${offset}px`;
+      frameId = requestAnimationFrame(animate);
+    };
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  return (
+    <Polyline
+      ref={routeRef}
+      positions={ROUTE_WAYPOINTS}
+      pathOptions={{
+        color: "#dbeafe",
+        weight: 3,
+        opacity: 0.95,
+        lineCap: "round",
+        dashArray: "36 860",
+        className: "scd-route-shine",
+      }}
+    />
+  );
+};
+
 const MapControls = () => {
   const map = useMap();
 
@@ -196,18 +242,23 @@ const LocationCard = ({
   pickup = false,
 }) => (
   <div
-    className={`pointer-events-none rounded-lg bg-slate-900/95 px-2.5 py-2 shadow-xl ${pickup
+    className={`pointer-events-none rounded-lg bg-slate-900/95 px-2.5 py-2 shadow-xl ${
+      pickup
         ? "w-[184px] border-1 border-emerald-400/80 sm:w-[198px]"
         : "w-[154px] border-1 border-rose-400/80 sm:w-[162px]"
-      }`}
+    }`}
   >
     <div className="flex items-center gap-2">
-      <span className={`flex size-5 shrink-0 items-center justify-center rounded-md ${iconBg} ${iconColor}`}>
+      <span
+        className={`flex size-5 shrink-0 items-center justify-center rounded-md ${iconBg} ${iconColor}`}
+      >
         <Icon className="size-2.5 sm:size-3" />
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className={`text-[8px] font-medium uppercase tracking-[0.12em] ${eyebrowClass}`}>
+        <p
+          className={`text-[8px] font-medium uppercase tracking-[0.12em] ${eyebrowClass}`}
+        >
           {eyebrow}
         </p>
 
@@ -247,7 +298,7 @@ const DispatchMap = () => {
           display: none;
         }
 
-         @media (max-width: 639px) {
+        @media (max-width: 639px) {
           .scd-mobile-tooltip .leaflet-tooltip-content {
             max-width: 100%;
           }
@@ -256,13 +307,6 @@ const DispatchMap = () => {
         .scd-route-shine {
           filter: drop-shadow(0 0 4px rgba(191, 219, 254, 0.9))
             drop-shadow(0 0 10px rgba(59, 130, 246, 0.6));
-          animation: scd-route-shine 3.4s linear infinite;
-        }
-
-        @keyframes scd-route-shine {
-          to {
-            stroke-dashoffset: -900;
-          }
         }
       `}</style>
 
@@ -349,17 +393,7 @@ const DispatchMap = () => {
             }}
           />
 
-          <Polyline
-            positions={ROUTE_WAYPOINTS}
-            pathOptions={{
-              color: "#dbeafe",
-              weight: 3,
-              opacity: 0.95,
-              lineCap: "round",
-              dashArray: "36 860",
-              className: "scd-route-shine",
-            }}
-          />
+          <RouteShine />
 
           <Marker position={[PICKUP.lat, PICKUP.lng]} icon={pickupIcon}>
             <Tooltip
@@ -439,8 +473,12 @@ const DispatchMap = () => {
           <FaCloud className="size-3.5 text-slate-300" />
 
           <div className="leading-tight">
-            <p className="text-[10px] font-medium tracking-[0.03em] text-white">26°C</p>
-            <p className="text-[8px] tracking-[0.03em] text-slate-400">Mumbai</p>
+            <p className="text-[10px] font-medium tracking-[0.03em] text-white">
+              26°C
+            </p>
+            <p className="text-[8px] tracking-[0.03em] text-slate-400">
+              Mumbai
+            </p>
           </div>
         </div>
 
@@ -472,9 +510,17 @@ const DispatchMap = () => {
             </p>
 
             <div className="mt-0.5 flex items-center gap-1.5">
-              <Icon className={`size-2.5 shrink-0 sm:size-3 ${accent ? "text-emerald-400" : "text-blue-400"}`} />
+              <Icon
+                className={`size-2.5 shrink-0 sm:size-3 ${
+                  accent ? "text-emerald-400" : "text-blue-400"
+                }`}
+              />
 
-              <p className={`truncate text-xs font-medium tracking-[0.02em] sm:text-sm ${accent ? "text-emerald-300" : "text-white"}`}>
+              <p
+                className={`truncate text-xs font-medium tracking-[0.02em] sm:text-sm ${
+                  accent ? "text-emerald-300" : "text-white"
+                }`}
+              >
                 {value}
               </p>
             </div>
