@@ -1,7 +1,7 @@
 import { FaBars, FaArrowRightFromBracket } from "react-icons/fa6";
 import useAuth from "../../hooks/useAuth.js";
 
-const PortalHeader = ({ title = "ADMIN PORTAL", onMenuClick }) => {
+const PortalHeader = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
 
   return (
