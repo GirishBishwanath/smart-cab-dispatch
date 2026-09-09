@@ -26,7 +26,7 @@ const StatusBadge = ({ status }) => (
 );
 
 
-const PageHeader = ({ count, onAdd }) => (
+const PageHeader = ({ onAdd }) => (
     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">Fleet management</p>
@@ -128,12 +128,10 @@ const Drivers = () => {
 
     const available = drivers.filter((d) => d.status === "AVAILABLE").length;
     const assigned = drivers.filter((d) => d.status === "ASSIGNED").length;
-    const offline = drivers.filter((d) => d.status === "OFFLINE").length;
 
     return (
         <div className="space-y-6">
             <PageHeader
-                count={drivers.length}
                 onAdd={() => {
                     setEditingDriver(null);
                     setOpenModal(true);
