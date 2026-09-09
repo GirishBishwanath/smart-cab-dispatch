@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-    FaCarSide,
     FaCircle,
     FaRoute,
     FaUser,
@@ -11,7 +10,6 @@ import rideService from "../services/ride.service.js";
 import driverService from "../services/driver.service.js";
 import RideCard from "../components/RideCard.jsx";
 import RideActionCard from "../components/RideActionCard.jsx";
-import StatusBadge from "../components/StatusBadge.jsx";
 import { ROUTES } from "../utils/constants.js";
 import socketService from "../services/socket.service.js";
 
@@ -222,79 +220,61 @@ const Dashboard = () => {
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-sm font-semibold text-slate-500">
-                                No active ride
-                            </p>
+                            <div className="space-y-1">
+                                <p className="text-sm font-bold text-slate-900">
+                                    No active ride
+                                </p>
+                                <p className="text-[11px] leading-4 text-slate-500">
+                                    You are available for the next assignment.
+                                </p>
+                            </div>
                         )}
                     </Metric>
 
                     <Metric
                         icon={FaCarSide}
-                        label="Assigned vehicle"
+                        label="Vehicle"
                         accent="bg-emerald-50 text-emerald-600"
                     >
                         {loading ? (
                             <div className="h-5 w-28 animate-pulse rounded bg-slate-100" />
                         ) : vehicle ? (
-                            <>
+                            <div className="space-y-1">
                                 <p className="text-sm font-bold text-slate-900">
                                     {vehicle.vehicleNumber}
                                 </p>
-
-                                <p className="mt-0.5 text-xs text-slate-500">
+                                <p className="text-[11px] text-slate-500">
                                     {vehicle.model}
                                 </p>
-                            </>
+                            </div>
                         ) : (
-                            <p className="text-sm font-semibold text-slate-500">
-                                No vehicle assigned
+                            <p className="text-sm font-semibold text-slate-400">
+                                Vehicle unavailable
                             </p>
                         )}
                     </Metric>
                 </div>
             </section>
 
-            {loading ? (
-                <section className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-                    <div className="animate-pulse space-y-7">
-                        <div className="flex justify-between">
-                            <div className="space-y-2">
-                                <div className="h-3 w-32 rounded bg-slate-200" />
-                                <div className="h-5 w-48 rounded bg-slate-200" />
-                            </div>
-
-                            <div className="h-7 w-20 rounded-full bg-slate-200" />
-                        </div>
-
-                        <div className="h-24 rounded-xl bg-slate-100" />
-                        <div className="h-16 rounded-xl bg-slate-100" />
-                    </div>
-                </section>
-            ) : ride ? (
-                <section className="space-y-4">
+            {ride ? (
+                <section className="grid gap-5 lg:grid-cols-2">
                     <RideCard ride={ride} />
-
-                    <RideActionCard
-                        ride={ride}
-                        onUpdated={handleRideUpdated}
-                        showDetailsLink
-                    />
+                    <RideActionCard ride={ride} onRideUpdated={handleRideUpdated} />
                 </section>
             ) : (
-                <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                    <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-                        <FaRoute className="size-5" />
-                    </div>
-
-                    <h2 className="mt-4 text-lg font-bold text-slate-900">
-                        No active assignment
-                    </h2>
-
-                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                        You currently have no assigned ride. A new
-                        assignment will appear here when dispatch assigns
-                        one to you.
+                <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                    <p className="text-sm font-semibold text-slate-700">
+                        No current ride assigned.
                     </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                        Stay available and this dashboard will update when a ride is assigned.
+                    </p>
+                    <a
+                        href={ROUTES.RIDE_HISTORY}
+                        className="mt-4 inline-flex items-center rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                        View ride history
+                    </a>
                 </section>
             )}
         </div>
