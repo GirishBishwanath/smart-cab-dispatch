@@ -22,18 +22,24 @@ export const saveSession = (token, user) => {
     try {
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(user));
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
 
 export const saveUser = (user) => {
     try {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
 
 export const clearSession = () => {
     try {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
