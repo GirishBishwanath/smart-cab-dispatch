@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import driverRoutes from "./routes/driver.routes.js";
 import guestRoutes from "./routes/guest.routes.js";
+import healthRoutes from "./routes/health.routes.js";
 import rideRequestRoutes from "./routes/rideRequest.routes.js";
 import rideRoutes from "./routes/ride.routes.js";
 import errorHandler from "./middleware/error.middleware.js";
@@ -33,6 +34,7 @@ app.get("/", (req, res) =>
     })
 );
 
+app.use("/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/drivers", driverRoutes);
