@@ -11,8 +11,6 @@ import {
 import api from "../services/api.js";
 import FleetMap from "../components/FleetMap.jsx";
 
-const STATUS = ["ARRIVED", "PICKED_UP", "COMPLETED"];
-
 const STATUS_STYLES = {
   ARRIVED: "bg-amber-50 text-amber-700 ring-amber-200",
   PICKED_UP: "bg-blue-50 text-blue-700 ring-blue-200",
@@ -64,15 +62,6 @@ const Rides = () => {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateStatus = async (id, status) => {
-    try {
-      await api.patch(`/rides/${id}/status`, { status });
-      await fetchRides();
-    } catch (err) {
-      alert(err.message);
     }
   };
 
