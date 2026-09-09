@@ -12,9 +12,27 @@ Smart Cab Dispatch is deployed as five independent applications from one GitHub 
 | Driver | Vercel | `driver-portal` | https://smart-cab-dispatch-driver.vercel.app |
 | Admin | Vercel | `admin-portal` | https://smart-cab-dispatch-admin.vercel.app |
 
+## Deployment pipeline
+
+The repository uses GitHub Actions as the CI quality gate for changes pushed to `main` and for pull requests. The workflow installs dependencies and validates lint/build for all four frontend applications, validates backend syntax, and builds the backend Docker image. The CI workflow does not deploy production itself.
+
+The current production deployment path remains hosting-provider driven:
+
+```text
+Pull request
+    ↓
+GitHub Actions CI
+    ↓
+Merge / push to main
+    ↓
+Vercel production deployments + Render backend deployment
+```
+
+Vercel and Render remain separate because the repository contains four independent Vite applications and one independent backend service. Docker is currently used to make the backend runtime reproducible and to validate the backend image in CI; it is not required to replace the existing hosting configuration.
+
 ## Backend — Render
 
-Configure the Render Web Service with:
+The current Render service is configured as a native Node.js Web Service:
 
 - Root Directory: `backend`
 - Build Command: `npm install`
@@ -35,6 +53,12 @@ ALLOWED_ORIGINS=<production frontend origins>
 
 Render provides `PORT` for the running service. The application also has a local fallback port for development.
 
+### Docker deployment decision
+
+A production Docker migration is **not currently required**. The repository has a validated backend Dockerfile, and Render supports Docker-based services, but the existing native Node deployment already matches the application's runtime needs. Migrating the Render service to Docker would add deployment configuration churn without solving a demonstrated production problem.
+
+Keep the Docker image as the reproducible runtime artifact used for local validation and CI. Revisit a Render Docker deployment if the project later needs tighter OS/runtime control, guaranteed image parity with another environment, or other Docker-specific operational requirements.
+
 ## Frontends — Vercel
 
 Each frontend is configured as a separate Vercel project using the corresponding repository subfolder as its Root Directory.
@@ -48,7 +72,7 @@ Output: dist
 Install: npm install
 ```
 
-SPA routing requires the app's `vercel.json` rewrite configuration so direct navigation to client-side routes resolves to `index.html`.
+SPA routing requires each app's `vercel.json` rewrite configuration so direct navigation to client-side routes resolves to `index.html`.
 
 ### Landing
 
@@ -104,12 +128,14 @@ Google Identity Services requires the production frontend origin to be registere
 
 ## Deployment order
 
-1. Deploy the backend and confirm its production URL.
-2. Configure and deploy the four Vercel applications with the backend URL.
-3. Configure backend `ALLOWED_ORIGINS` with the final frontend origins.
-4. Redeploy the backend after CORS changes.
-5. Verify Google OAuth's production origin.
-6. Smoke-test login, ride creation, dispatch, live location, routing, and ride completion across the portals.
+1. Open a pull request for application changes.
+2. GitHub Actions validates dependencies, lint/build, backend syntax, and the backend Docker image.
+3. Merge the validated change into `main`.
+4. Vercel deploys the affected frontend project(s) from `main`.
+5. Render deploys the backend from `main` using its existing native Node runtime.
+6. Verify the backend health endpoint and perform the production smoke test for changes that affect runtime behavior.
+
+The exact timing and provider deployment behavior are controlled by the Vercel/Render project settings rather than by the GitHub Actions workflow.
 
 ## Production smoke test
 
