@@ -4,7 +4,6 @@ import {
   FaRoute,
   FaClockRotateLeft,
   FaUser,
-  FaCarSide,
   FaCircleCheck,
   FaXmark,
 } from "react-icons/fa6";
