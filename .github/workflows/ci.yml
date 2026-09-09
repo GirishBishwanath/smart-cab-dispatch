@@ -77,3 +77,13 @@ jobs:
 
       - name: Validate server syntax
         run: node --check src/server.js
+
+  backend-docker:
+    name: backend-docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build --pull -t smart-cab-dispatch-backend:ci ./backend
