@@ -26,7 +26,9 @@ export const saveSession = (token, user) => {
             USER_KEY,
             JSON.stringify(user)
         );
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
 
 export const saveUser = (user) => {
@@ -35,12 +37,16 @@ export const saveUser = (user) => {
             USER_KEY,
             JSON.stringify(user)
         );
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
 
 export const clearSession = () => {
     try {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-    } catch {}
+    } catch {
+        return undefined;
+    }
 };
