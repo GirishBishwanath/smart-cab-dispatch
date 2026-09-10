@@ -42,6 +42,10 @@ describe("ride domain invariants", () => {
         expect(index[1].sparse).toBe(true);
     });
 
+    it("enables optimistic concurrency for ride state changes", () => {
+        expect(Ride.schema.options.optimisticConcurrency).toBe(true);
+    });
+
     it("requires positive vehicle seating capacity", () => {
         expect(Vehicle.schema.path("seatCapacity").options.min).toBe(1);
         expect(Vehicle.schema.path("seatCapacity").isRequired).toBe(true);
