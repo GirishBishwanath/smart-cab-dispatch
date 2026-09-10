@@ -9,9 +9,14 @@ import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
 import { DRIVER_STATUS, RIDE_STATUS } from "../utils/constants.js";
 
-vi.mock("mongoose", () => ({
-    startSession: vi.fn(),
-}));
+vi.mock("mongoose", () => {
+    const startSession = vi.fn();
+
+    return {
+        default: { startSession },
+        startSession,
+    };
+});
 
 vi.mock("../models/Driver.js", () => ({
     default: {
