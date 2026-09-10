@@ -19,6 +19,15 @@ const TRACKABLE_RIDE_STATUSES = [
     RIDE_STATUS.PICKED_UP,
 ];
 
+const isValidLocation = (latitude, longitude) =>
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(latitude === 0 && longitude === 0);
+
 const initializeSocket = (
     httpServer
 ) => {
@@ -163,10 +172,7 @@ const initializeSocket = (
                             longitude,
                         } = payload || {};
 
-                        if (
-                            typeof latitude !== "number" ||
-                            typeof longitude !== "number"
-                        ) {
+                        if (!isValidLocation(latitude, longitude)) {
                             return;
                         }
 
@@ -179,13 +185,6 @@ const initializeSocket = (
                             return;
                         }
 
-                        driver.currentLocation = {
-                            latitude,
-                            longitude,
-                        };
-
-                        await driver.save();
-
                         const targetRideId =
                             rideId ||
                             driver.currentRide?.toString();
@@ -195,6 +194,7 @@ const initializeSocket = (
                         }
 
                         if (
+                            !driver.currentRide ||
                             driver.currentRide?.toString() !==
                             targetRideId.toString()
                         ) {
@@ -218,11 +218,21 @@ const initializeSocket = (
                             return;
                         }
 
+                        const updatedAt = new Date();
+
+                        driver.currentLocation = {
+                            latitude,
+                            longitude,
+                        };
+                        driver.locationUpdatedAt = updatedAt;
+
+                        await driver.save();
+
                         const locationPayload = {
                             rideId: ride._id.toString(),
                             latitude,
                             longitude,
-                            updatedAt: new Date().toISOString(),
+                            updatedAt: updatedAt.toISOString(),
                         };
 
                         const guestUserIds = (
