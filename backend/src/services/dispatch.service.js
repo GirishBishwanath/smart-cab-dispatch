@@ -10,6 +10,19 @@ import { haversineDistanceKm } from "../utils/geo.js";
 import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
 
+const populateRide = (rideId) =>
+    Ride.findById(rideId)
+        .populate({
+            path: "driver",
+            populate: { path: "user", select: "-password -__v" },
+        })
+        .populate("vehicle")
+        .populate("rideRequest")
+        .populate({
+            path: "guests",
+            populate: { path: "user", select: "-password -__v" },
+        });
+
 const findAvailableDrivers = () =>
     Driver.find({
         status: DRIVER_STATUS.AVAILABLE,
@@ -17,7 +30,7 @@ const findAvailableDrivers = () =>
         $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }],
     });
 
-const reserveDriver = async (driverId, rideId) =>
+const reserveDriver = (driverId, session) =>
     Driver.findOneAndUpdate(
         {
             _id: driverId,
@@ -28,28 +41,29 @@ const reserveDriver = async (driverId, rideId) =>
         {
             $set: {
                 status: DRIVER_STATUS.ASSIGNED,
-                currentRide: rideId,
             },
         },
-        { new: true }
+        { new: true, session }
     );
 
-const releaseReservedDriver = async (driverId, rideId) =>
+const attachRideToDriver = (driverId, rideId, session) =>
     Driver.findOneAndUpdate(
         {
             _id: driverId,
             status: DRIVER_STATUS.ASSIGNED,
-            currentRide: rideId,
+            currentRide: null,
         },
         {
             $set: {
-                status: DRIVER_STATUS.AVAILABLE,
-                currentRide: null,
-                freeAt: new Date(),
+                currentRide: rideId,
             },
         },
-        { new: true }
+        { new: true, session }
     );
+
+const isDuplicateRideRequestError = (error) =>
+    error?.code === 11000 &&
+    Boolean(error?.keyPattern?.rideRequest || error?.keyValue?.rideRequest);
 
 const assignDriver = async (rideRequest) => {
     const drivers = await findAvailableDrivers();
@@ -70,8 +84,7 @@ const assignDriver = async (rideRequest) => {
             )
     );
 
-    let selectedDriver = null;
-    let selectedVehicle = null;
+    const eligibleDrivers = [];
 
     for (const driver of rankedDrivers) {
         const vehicle = await Vehicle.findOne({
@@ -87,14 +100,12 @@ const assignDriver = async (rideRequest) => {
         const hasEnoughLuggageSpace =
             vehicle.luggageCapacity >= rideRequest.luggageCount;
 
-        if (!hasEnoughSeats || !hasEnoughLuggageSpace) continue;
-
-        selectedDriver = driver;
-        selectedVehicle = vehicle;
-        break;
+        if (hasEnoughSeats && hasEnoughLuggageSpace) {
+            eligibleDrivers.push(driver);
+        }
     }
 
-    if (!selectedDriver) {
+    if (!eligibleDrivers.length) {
         throw new ApiError(
             400,
             "No vehicle satisfies capacity requirements"
@@ -119,34 +130,126 @@ const assignDriver = async (rideRequest) => {
         );
     }
 
-    const rideId = new mongoose.Types.ObjectId();
-    const reservedDriver = await reserveDriver(selectedDriver._id, rideId);
-
-    if (!reservedDriver) {
-        return assignDriver(rideRequest);
-    }
+    const session = await mongoose.startSession();
+    let rideId = null;
+    let driverUserId = null;
 
     try {
-        await Ride.create({
-            _id: rideId,
-            rideRequest: rideRequest._id,
-            guests: [rideRequest.guest],
-            driver: reservedDriver._id,
-            vehicle: selectedVehicle._id,
-            tripType: rideRequest.tripType,
-            pickupLocation: rideRequest.pickupLocation,
-            dropLocation: rideRequest.dropLocation,
-            estimatedDistance,
-            estimatedDuration,
-            assignedAt: new Date(),
-            status: RIDE_STATUS.ASSIGNED,
+        await session.withTransaction(async () => {
+            let reservedDriver = null;
+            let selectedVehicle = null;
+
+            for (const candidate of eligibleDrivers) {
+                const vehicle = await Vehicle.findOne({
+                    driver: candidate._id,
+                    isActive: true,
+                }).session(session);
+
+                if (!vehicle) continue;
+
+                const hasEnoughSeats =
+                    vehicle.seatCapacity >= rideRequest.groupSize;
+
+                const hasEnoughLuggageSpace =
+                    vehicle.luggageCapacity >= rideRequest.luggageCount;
+
+                if (!hasEnoughSeats || !hasEnoughLuggageSpace) continue;
+
+                const claimedDriver = await reserveDriver(
+                    candidate._id,
+                    session
+                );
+
+                if (!claimedDriver) continue;
+
+                reservedDriver = claimedDriver;
+                selectedVehicle = vehicle;
+                break;
+            }
+
+            if (!reservedDriver) {
+                throw new ApiError(
+                    400,
+                    "No driver could be reserved"
+                );
+            }
+
+            const [ride] = await Ride.create([
+                {
+                    rideRequest: rideRequest._id,
+                    guests: [rideRequest.guest],
+                    driver: reservedDriver._id,
+                    vehicle: selectedVehicle._id,
+                    tripType: rideRequest.tripType,
+                    pickupLocation: rideRequest.pickupLocation,
+                    dropLocation: rideRequest.dropLocation,
+                    estimatedDistance,
+                    estimatedDuration,
+                    assignedAt: new Date(),
+                    status: RIDE_STATUS.ASSIGNED,
+                },
+            ], { session });
+
+            const attachedDriver = await attachRideToDriver(
+                reservedDriver._id,
+                ride._id,
+                session
+            );
+
+            if (!attachedDriver) {
+                throw new ApiError(
+                    409,
+                    "Driver reservation could not be finalized"
+                );
+            }
+
+            rideId = ride._id;
+            driverUserId = reservedDriver.user.toString();
         });
     } catch (error) {
-        await releaseReservedDriver(reservedDriver._id, rideId);
-        throw error;
+        if (!isDuplicateRideRequestError(error)) {
+            throw error;
+        }
+
+        const existingRide = await populateRideByRequest(rideRequest._id);
+
+        if (!existingRide) throw error;
+
+        rideId = existingRide._id;
+        driverUserId = existingRide.driver?.user?._id
+            ? String(existingRide.driver.user._id)
+            : String(existingRide.driver?.user || "");
+    } finally {
+        await session.endSession();
     }
 
-    const populatedRide = await Ride.findById(rideId)
+    const populatedRide =
+        rideId &&
+        (await populateRide(rideId));
+
+    if (!populatedRide) {
+        throw new ApiError(500, "Assigned ride could not be loaded");
+    }
+
+    const resolvedDriverUserId =
+        driverUserId ||
+        populatedRide.driver?.user?._id ||
+        populatedRide.driver?.user;
+
+    socketService.emitRideAssigned(
+        String(resolvedDriverUserId),
+        populatedRide
+    );
+    socketService.emitDriverStatus(
+        String(resolvedDriverUserId),
+        populatedRide.driver
+    );
+
+    return populatedRide;
+};
+
+const populateRideByRequest = (rideRequestId) =>
+    Ride.findOne({ rideRequest: rideRequestId })
         .populate({
             path: "driver",
             populate: { path: "user", select: "-password -__v" },
@@ -157,13 +260,5 @@ const assignDriver = async (rideRequest) => {
             path: "guests",
             populate: { path: "user", select: "-password -__v" },
         });
-
-    const driverUserId = reservedDriver.user.toString();
-
-    socketService.emitRideAssigned(driverUserId, populatedRide);
-    socketService.emitDriverStatus(driverUserId, reservedDriver);
-
-    return populatedRide;
-};
 
 export default { assignDriver };
