@@ -160,7 +160,9 @@ describe("DriverService.updateDriverStatus", () => {
         };
         const updated = { _id: "driver-1", status: DRIVER_STATUS.AVAILABLE };
 
-        Driver.findById.mockResolvedValueOnce(driver).mockReturnValueOnce(createQuery(updated));
+        Driver.findById.mockResolvedValueOnce(driver).mockReturnValueOnce({
+            populate: vi.fn().mockResolvedValue(updated),
+        });
 
         const result = await DriverService.updateDriverStatus("driver-1", DRIVER_STATUS.AVAILABLE);
 
@@ -168,10 +170,7 @@ describe("DriverService.updateDriverStatus", () => {
         expect(driver.breakUntil).toBeNull();
         expect(driver.save).toHaveBeenCalledTimes(1);
         expect(socketService.emitDriverStatus).toHaveBeenCalledWith("user-1", driver);
-        expect(result).toEqual(expect.objectContaining({
-            _id: "driver-1",
-            status: DRIVER_STATUS.AVAILABLE,
-        }));
+        expect(result).toEqual(updated);
         expect(Driver.findById).toHaveBeenLastCalledWith("driver-1");
     });
 });
