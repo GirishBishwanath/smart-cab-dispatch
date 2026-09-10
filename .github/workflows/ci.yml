@@ -78,6 +78,9 @@ jobs:
       - name: Validate server syntax
         run: node --check src/server.js
 
+      - name: Run tests
+        run: npm test
+
   backend-docker:
     name: backend-docker
     runs-on: ubuntu-latest
