@@ -52,7 +52,7 @@ describe("routingService.getDrivingRoute", () => {
                         geometry: {
                             coordinates: [
                                 [77.1, 12.9],
-                                [77.2, 13.0],
+                                [77.2, 13],
                             ],
                         },
                     },
@@ -62,7 +62,7 @@ describe("routingService.getDrivingRoute", () => {
 
         const result = await routingService.getDrivingRoute(
             { latitude: 12.9, longitude: 77.1 },
-            { latitude: 13.0, longitude: 77.2 }
+            { latitude: 13, longitude: 77.2 }
         );
 
         expect(result).toEqual({
@@ -75,9 +75,7 @@ describe("routingService.getDrivingRoute", () => {
         });
 
         expect(globalThis.fetch).toHaveBeenCalledWith(
-            expect.stringMatching(
-                /^https:\/\/router\.project-osrm\.org\/route\/v1\/driving\/77\.1,12\.9;77\.2,13\.0\?overview=full&geometries=geojson&steps=false$/
-            ),
+            "https://router.project-osrm.org/route/v1/driving/77.1,12.9;77.2,13?overview=full&geometries=geojson&steps=false",
             expect.objectContaining({
                 headers: { Accept: "application/json" },
                 signal: expect.any(AbortSignal),
@@ -97,7 +95,7 @@ describe("routingService.getDrivingRoute", () => {
 
         const result = await routingService.getDrivingRoute(
             { latitude: 12.9, longitude: 77.1 },
-            { latitude: 13.0, longitude: 77.2 }
+            { latitude: 13, longitude: 77.2 }
         );
 
         expect(result.durationMinutes).toBe(1);
@@ -112,7 +110,7 @@ describe("routingService.getDrivingRoute", () => {
         await expect(
             routingService.getDrivingRoute(
                 { latitude: 12.9, longitude: 77.1 },
-                { latitude: 13.0, longitude: 77.2 }
+                { latitude: 13, longitude: 77.2 }
             )
         ).rejects.toThrow("OSRM request failed with 503");
     });
@@ -130,7 +128,7 @@ describe("routingService.getDrivingRoute", () => {
         await expect(
             routingService.getDrivingRoute(
                 { latitude: 12.9, longitude: 77.1 },
-                { latitude: 13.0, longitude: 77.2 }
+                { latitude: 13, longitude: 77.2 }
             )
         ).rejects.toThrow("No route found");
     });
