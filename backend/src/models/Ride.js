@@ -67,7 +67,10 @@ const rideSchema = new mongoose.Schema({
         enum: ["GUEST", "DRIVER", "ADMIN", null],
         default: null,
     },
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    optimisticConcurrency: true,
+});
 
 rideSchema.index(
     { rideRequest: 1 },
