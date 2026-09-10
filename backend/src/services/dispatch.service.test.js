@@ -273,6 +273,10 @@ describe("dispatchService.assignDriver", () => {
             luggageCapacity: 4,
         };
         const existingRide = { _id: "ride-existing", driver };
+        const duplicateError = {
+            code: 11000,
+            keyPattern: { rideRequest: 1 },
+        };
 
         Driver.find.mockReturnValue(createQuery([driver]));
         Vehicle.findOne.mockReturnValue(createQuery(vehicle));
@@ -280,13 +284,11 @@ describe("dispatchService.assignDriver", () => {
             distanceKm: 5,
             durationMinutes: 10,
         });
-        const duplicateError = {
-            code: 11000,
-            keyPattern: { rideRequest: 1 },
-        };
-        const session = createSession();
-        session.withTransaction.mockRejectedValue(duplicateError);
-        startSession.mockResolvedValue(session);
+        Driver.findOneAndUpdate.mockResolvedValue({
+            ...driver,
+            status: DRIVER_STATUS.ASSIGNED,
+        });
+        Ride.create.mockRejectedValue(duplicateError);
         Ride.findOne.mockReturnValue(createQuery(existingRide));
 
         const result = await dispatchService.assignDriver(createRequest());
