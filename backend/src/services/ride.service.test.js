@@ -4,6 +4,7 @@ import Ride from "../models/Ride.js";
 import Driver from "../models/Driver.js";
 import Guest from "../models/Guest.js";
 import RideRequest from "../models/RideRequest.js";
+import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
 import { DRIVER_STATUS, RIDE_STATUS, ROLES } from "../utils/constants.js";
 
@@ -333,10 +334,9 @@ describe("RideService.cancelGuestRide", () => {
         };
 
         Guest.findOne.mockResolvedValue(guest);
-        Ride.findById.mockResolvedValue(ride);
+        Ride.findById.mockImplementationOnce(() => Promise.resolve(ride)).mockReturnValueOnce(createQuery(ride));
         Driver.findById.mockResolvedValue(driver);
         RideRequest.findByIdAndUpdate.mockResolvedValue(undefined);
-        Ride.findById.mockImplementationOnce(() => Promise.resolve(ride)).mockReturnValueOnce(createQuery(ride));
 
         const result = await RideService.cancelGuestRide("user-1", "ride-1", " Change of plans ");
 
@@ -382,5 +382,53 @@ describe("RideService.declineRide", () => {
         await expect(
             RideService.declineRide("user-1", "ride-1", "Cannot take this ride")
         ).rejects.toMatchObject({ statusCode: 400 });
+    });
+});
+
+describe("RideService.getRideRoute", () => {
+    const ride = {
+        _id: "ride-1",
+        driver: { user: "driver-user" },
+        guests: [{ user: "guest-user" }],
+    };
+    const from = { latitude: 12.9, longitude: 77.6 };
+    const to = { latitude: 13.0, longitude: 77.7 };
+    const route = { distanceKm: 12.3, durationMinutes: 14, geometry: [[12.9, 77.6]] };
+
+    it("rejects users who are not associated with the ride", async () => {
+        Ride.findById.mockReturnValue(createQuery(ride));
+
+        await expect(
+            RideService.getRideRoute("ride-1", "other-user", ROLES.GUEST, from, to)
+        ).rejects.toMatchObject({ statusCode: 403 });
+        expect(routingService.getDrivingRoute).not.toHaveBeenCalled();
+    });
+
+    it("allows an admin and returns the routed metrics", async () => {
+        Ride.findById.mockReturnValue(createQuery(ride));
+        routingService.getDrivingRoute.mockResolvedValue(route);
+
+        await expect(
+            RideService.getRideRoute("ride-1", "admin-user", ROLES.ADMIN, from, to)
+        ).resolves.toEqual({ rideId: "ride-1", ...route });
+        expect(routingService.getDrivingRoute).toHaveBeenCalledWith(from, to);
+    });
+
+    it("allows the assigned driver", async () => {
+        Ride.findById.mockReturnValue(createQuery(ride));
+        routingService.getDrivingRoute.mockResolvedValue(route);
+
+        await expect(
+            RideService.getRideRoute("ride-1", "driver-user", ROLES.DRIVER, from, to)
+        ).resolves.toEqual({ rideId: "ride-1", ...route });
+    });
+
+    it("allows a guest listed on the ride", async () => {
+        Ride.findById.mockReturnValue(createQuery(ride));
+        routingService.getDrivingRoute.mockResolvedValue(route);
+
+        await expect(
+            RideService.getRideRoute("ride-1", "guest-user", ROLES.GUEST, from, to)
+        ).resolves.toEqual({ rideId: "ride-1", ...route });
     });
 });
