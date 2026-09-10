@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Driver from "../models/Driver.js";
 import Vehicle from "../models/Vehicle.js";
 import Ride from "../models/Ride.js";
@@ -9,25 +10,49 @@ import { haversineDistanceKm } from "../utils/geo.js";
 import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
 
-const populateRide = (rideId) =>
-    Ride.findById(rideId)
-        .populate({
-            path: "driver",
-            populate: { path: "user", select: "-password -__v" },
-        })
-        .populate("vehicle")
-        .populate("rideRequest")
-        .populate({
-            path: "guests",
-            populate: { path: "user", select: "-password -__v" },
-        });
-
-const assignDriver = async (rideRequest) => {
-    const drivers = await Driver.find({
+const findAvailableDrivers = () =>
+    Driver.find({
         status: DRIVER_STATUS.AVAILABLE,
         currentRide: null,
         $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }],
     });
+
+const reserveDriver = async (driverId, rideId) =>
+    Driver.findOneAndUpdate(
+        {
+            _id: driverId,
+            status: DRIVER_STATUS.AVAILABLE,
+            currentRide: null,
+            $or: [{ breakUntil: null }, { breakUntil: { $lte: new Date() } }],
+        },
+        {
+            $set: {
+                status: DRIVER_STATUS.ASSIGNED,
+                currentRide: rideId,
+            },
+        },
+        { new: true }
+    );
+
+const releaseReservedDriver = async (driverId, rideId) =>
+    Driver.findOneAndUpdate(
+        {
+            _id: driverId,
+            status: DRIVER_STATUS.ASSIGNED,
+            currentRide: rideId,
+        },
+        {
+            $set: {
+                status: DRIVER_STATUS.AVAILABLE,
+                currentRide: null,
+                freeAt: new Date(),
+            },
+        },
+        { new: true }
+    );
+
+const assignDriver = async (rideRequest) => {
+    const drivers = await findAvailableDrivers();
 
     if (!drivers.length) {
         throw new ApiError(400, "No drivers available");
@@ -62,11 +87,11 @@ const assignDriver = async (rideRequest) => {
         const hasEnoughLuggageSpace =
             vehicle.luggageCapacity >= rideRequest.luggageCount;
 
-        if (hasEnoughSeats && hasEnoughLuggageSpace) {
-            selectedDriver = driver;
-            selectedVehicle = vehicle;
-            break;
-        }
+        if (!hasEnoughSeats || !hasEnoughLuggageSpace) continue;
+
+        selectedDriver = driver;
+        selectedVehicle = vehicle;
+        break;
     }
 
     if (!selectedDriver) {
@@ -94,29 +119,49 @@ const assignDriver = async (rideRequest) => {
         );
     }
 
-    const ride = await Ride.create({
-        rideRequest: rideRequest._id,
-        guests: [rideRequest.guest],
-        driver: selectedDriver._id,
-        vehicle: selectedVehicle._id,
-        tripType: rideRequest.tripType,
-        pickupLocation: rideRequest.pickupLocation,
-        dropLocation: rideRequest.dropLocation,
-        estimatedDistance,
-        estimatedDuration,
-        assignedAt: new Date(),
-        status: RIDE_STATUS.ASSIGNED,
-    });
+    const rideId = new mongoose.Types.ObjectId();
+    const reservedDriver = await reserveDriver(selectedDriver._id, rideId);
 
-    selectedDriver.status = DRIVER_STATUS.ASSIGNED;
-    selectedDriver.currentRide = ride._id;
-    await selectedDriver.save();
+    if (!reservedDriver) {
+        return assignDriver(rideRequest);
+    }
 
-    const populatedRide = await populateRide(ride._id);
-    const driverUserId = selectedDriver.user.toString();
+    try {
+        await Ride.create({
+            _id: rideId,
+            rideRequest: rideRequest._id,
+            guests: [rideRequest.guest],
+            driver: reservedDriver._id,
+            vehicle: selectedVehicle._id,
+            tripType: rideRequest.tripType,
+            pickupLocation: rideRequest.pickupLocation,
+            dropLocation: rideRequest.dropLocation,
+            estimatedDistance,
+            estimatedDuration,
+            assignedAt: new Date(),
+            status: RIDE_STATUS.ASSIGNED,
+        });
+    } catch (error) {
+        await releaseReservedDriver(reservedDriver._id, rideId);
+        throw error;
+    }
+
+    const populatedRide = await Ride.findById(rideId)
+        .populate({
+            path: "driver",
+            populate: { path: "user", select: "-password -__v" },
+        })
+        .populate("vehicle")
+        .populate("rideRequest")
+        .populate({
+            path: "guests",
+            populate: { path: "user", select: "-password -__v" },
+        });
+
+    const driverUserId = reservedDriver.user.toString();
 
     socketService.emitRideAssigned(driverUserId, populatedRide);
-    socketService.emitDriverStatus(driverUserId, selectedDriver);
+    socketService.emitDriverStatus(driverUserId, reservedDriver);
 
     return populatedRide;
 };
