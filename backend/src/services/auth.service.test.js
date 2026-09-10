@@ -5,6 +5,7 @@ import AuthService from "./auth.service.js";
 import User from "../models/User.js";
 import Guest from "../models/Guest.js";
 import { ROLES } from "../utils/constants.js";
+import { OAuth2Client } from "google-auth-library";
 
 vi.mock("../models/User.js", () => ({
     default: {
@@ -33,6 +34,12 @@ vi.mock("../utils/hash.js", () => ({
 
 vi.mock("../utils/jwt.js", () => ({
     generateToken: vi.fn(() => "token"),
+}));
+
+vi.mock("google-auth-library", () => ({
+    OAuth2Client: vi.fn().mockImplementation(() => ({
+        verifyIdToken: vi.fn(),
+    })),
 }));
 
 beforeEach(() => {
@@ -123,5 +130,14 @@ describe("AuthService signup", () => {
             })
         ).rejects.toMatchObject({ statusCode: 400 });
         expect(User.findOne).toHaveBeenCalledWith({ email: "user@example.com" });
+    });
+});
+
+describe("AuthService.googleLogin", () => {
+    it("rejects missing Google credentials", async () => {
+        const client = OAuth2Client.mock.instances[0];
+        client.verifyIdToken.mockResolvedValue({});
+
+        await expect(AuthService.googleLogin("")).rejects.toMatchObject({ statusCode: 400 });
     });
 });
