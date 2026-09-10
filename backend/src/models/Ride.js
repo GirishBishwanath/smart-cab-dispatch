@@ -21,8 +21,7 @@ const rideSchema = new mongoose.Schema({
         default: null,
     },
 
-    rideRequest:
-    {
+    rideRequest: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "RideRequest",
     },
@@ -69,5 +68,10 @@ const rideSchema = new mongoose.Schema({
         default: null,
     },
 }, { timestamps: true });
+
+rideSchema.index(
+    { rideRequest: 1 },
+    { unique: true, sparse: true }
+);
 
 export default mongoose.model("Ride", rideSchema);
