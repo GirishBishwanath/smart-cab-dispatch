@@ -290,6 +290,7 @@ describe("dispatchService.assignDriver", () => {
         });
         Ride.create.mockRejectedValue(duplicateError);
         Ride.findOne.mockReturnValue(createQuery(existingRide));
+        Ride.findById.mockReturnValue(createQuery(existingRide));
 
         const result = await dispatchService.assignDriver(createRequest());
 
