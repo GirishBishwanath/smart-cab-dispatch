@@ -97,7 +97,7 @@ describe("RideService.updateRideStatus", () => {
     });
 
     it("records arrival for an accepted assigned ride", async () => {
-        const driver = { _id: "driver-1" };
+        const driver = { _id: "driver-1", user: "user-1" };
         const ride = {
             _id: "ride-1",
             driver: { equals: vi.fn(() => true) },
@@ -105,7 +105,11 @@ describe("RideService.updateRideStatus", () => {
             acceptedAt: new Date(),
             save: vi.fn().mockResolvedValue(undefined),
         };
-        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.ARRIVED };
+        const updatedRide = {
+            _id: "ride-1",
+            status: RIDE_STATUS.ARRIVED,
+            driver: { user: "user-1" },
+        };
 
         Ride.findById
             .mockResolvedValueOnce(ride)
@@ -144,7 +148,11 @@ describe("RideService.updateRideStatus", () => {
             status: RIDE_STATUS.ARRIVED,
             save: vi.fn().mockResolvedValue(undefined),
         };
-        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.PICKED_UP };
+        const updatedRide = {
+            _id: "ride-1",
+            status: RIDE_STATUS.PICKED_UP,
+            driver: { user: "user-1" },
+        };
 
         Ride.findById
             .mockResolvedValueOnce(ride)
@@ -180,7 +188,7 @@ describe("RideService.updateRideStatus", () => {
         const driver = {
             _id: "driver-1",
             user: "user-1",
-            status: DRIVER_STATUS.AVAILABLE,
+            status: DRIVER_STATUS.BUSY,
             currentRide: "ride-1",
             save: vi.fn().mockResolvedValue(undefined),
         };
@@ -190,7 +198,11 @@ describe("RideService.updateRideStatus", () => {
             status: RIDE_STATUS.PICKED_UP,
             save: vi.fn().mockResolvedValue(undefined),
         };
-        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.COMPLETED };
+        const updatedRide = {
+            _id: "ride-1",
+            status: RIDE_STATUS.COMPLETED,
+            driver: { user: "user-1" },
+        };
 
         Ride.findById
             .mockResolvedValueOnce(ride)
@@ -265,11 +277,14 @@ describe("RideService.acknowledgeRide", () => {
 });
 
 describe("RideService.cancelGuestRide", () => {
-    it("requires a cancellation reason before loading guest data", async () => {
+    it("requires a cancellation reason after loading guest data", async () => {
+        Guest.findOne.mockResolvedValue({ _id: "guest-1" });
+
         await expect(
             RideService.cancelGuestRide("user-1", "ride-1", "")
         ).rejects.toMatchObject({ statusCode: 400 });
-        expect(Guest.findOne).not.toHaveBeenCalled();
+        expect(Guest.findOne).toHaveBeenCalledWith({ user: "user-1" });
+        expect(Ride.findById).not.toHaveBeenCalled();
     });
 
     it("rejects cancellation for a guest who is not on the ride", async () => {
