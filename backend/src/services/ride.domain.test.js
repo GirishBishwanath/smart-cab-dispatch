@@ -5,6 +5,7 @@ import { RIDE_STATUS } from "../utils/constants.js";
 import RideRequest from "../models/RideRequest.js";
 import Vehicle from "../models/Vehicle.js";
 import Driver from "../models/Driver.js";
+import Ride from "../models/Ride.js";
 
 describe("ride domain invariants", () => {
     it("exposes the expected ride states", () => {
@@ -29,6 +30,16 @@ describe("ride domain invariants", () => {
             "PENDING",
             "APPROVED",
         ]);
+    });
+
+    it("allows at most one ride for each ride request", () => {
+        const index = Ride.schema.indexes().find(
+            ([fields, options]) =>
+                fields.rideRequest === 1 && options.unique === true
+        );
+
+        expect(index).toBeDefined();
+        expect(index[1].sparse).toBe(true);
     });
 
     it("requires positive vehicle seating capacity", () => {
