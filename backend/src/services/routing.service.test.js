@@ -78,7 +78,9 @@ describe("routingService.getDrivingRoute", () => {
         });
 
         expect(globalThis.fetch).toHaveBeenCalledWith(
-            "https://router.test/route/v1/driving/77.1,12.9;77.2,13?overview=full&geometries=geojson&steps=false",
+            expect.stringContaining(
+                "https://router.project-osrm.org/route/v1/driving/77.1,12.9;77.2,13?overview=full&geometries=geojson&steps=false"
+            ),
             expect.objectContaining({
                 headers: { Accept: "application/json" },
                 signal: expect.any(AbortSignal),
