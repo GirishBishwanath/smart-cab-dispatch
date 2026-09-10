@@ -61,6 +61,11 @@ const createRideQuery = (value) => ({
     populate: vi.fn().mockResolvedValue(value),
 });
 
+const getLocationHandler = (socket) => {
+    getConnectionHandler()(socket);
+    return socket.on.mock.calls.find(([event]) => event === "driver:location")[1];
+};
+
 beforeEach(() => {
     vi.clearAllMocks();
 });
@@ -165,8 +170,7 @@ describe("socket connection handlers", () => {
             on: vi.fn(),
         };
 
-        getConnectionHandler()(socket);
-        const locationHandler = socket.on.mock.calls.find(([event]) => event === "driver:location")[1];
+        const locationHandler = getLocationHandler(socket);
 
         await locationHandler({
             rideId: "ride-1",
@@ -175,6 +179,82 @@ describe("socket connection handlers", () => {
         });
 
         expect(driverFindOne).not.toHaveBeenCalled();
+    });
+
+    it("rejects invalid or out-of-range coordinates without persisting them", async () => {
+        initializeSocket({});
+        const driver = {
+            currentRide: "ride-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        await locationHandler({ latitude: 91, longitude: 77 });
+        await locationHandler({ latitude: 12, longitude: 181 });
+        await locationHandler({ latitude: 0, longitude: 0 });
+
+        expect(driverFindOne).not.toHaveBeenCalled();
+        expect(driver.save).not.toHaveBeenCalled();
+    });
+
+    it("does not persist a location for a mismatched or missing active ride", async () => {
+        initializeSocket({});
+        const driver = {
+            currentRide: "ride-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        await locationHandler({
+            rideId: "ride-2",
+            latitude: 12.97,
+            longitude: 77.59,
+        });
+
+        expect(driver.save).not.toHaveBeenCalled();
+        expect(rideFindById).not.toHaveBeenCalled();
+    });
+
+    it("does not persist a location after the ride becomes non-trackable", async () => {
+        initializeSocket({});
+        const driver = {
+            currentRide: "ride-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        rideFindById.mockReturnValue(createRideQuery({
+            _id: "ride-1",
+            status: "COMPLETED",
+            guests: [{ user: "guest-1" }],
+        }));
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        await locationHandler({
+            latitude: 12.97,
+            longitude: 77.59,
+        });
+
+        expect(driver.save).not.toHaveBeenCalled();
     });
 
     it("updates a driver's location and broadcasts it to ride guests and admins", async () => {
@@ -186,6 +266,7 @@ describe("socket connection handlers", () => {
         const driver = {
             currentRide: "ride-1",
             currentLocation: null,
+            locationUpdatedAt: null,
             save: vi.fn().mockResolvedValue(undefined),
         };
         driverFindOne.mockResolvedValue(driver);
@@ -202,8 +283,7 @@ describe("socket connection handlers", () => {
             on: vi.fn(),
         };
 
-        getConnectionHandler()(socket);
-        const locationHandler = socket.on.mock.calls.find(([event]) => event === "driver:location")[1];
+        const locationHandler = getLocationHandler(socket);
 
         await locationHandler({
             latitude: 12.97,
@@ -211,6 +291,7 @@ describe("socket connection handlers", () => {
         });
 
         expect(driver.currentLocation).toEqual({ latitude: 12.97, longitude: 77.59 });
+        expect(driver.locationUpdatedAt).toBeInstanceOf(Date);
         expect(driver.save).toHaveBeenCalledTimes(1);
         expect(rideFindById).toHaveBeenCalledWith("ride-1");
         expect(to).toHaveBeenCalledWith("user:guest-1");
