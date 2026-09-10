@@ -65,7 +65,7 @@ const isDuplicateRideRequestError = (error) =>
     error?.code === 11000 &&
     Boolean(error?.keyPattern?.rideRequest || error?.keyValue?.rideRequest);
 
-const assignDriver = async (rideRequest) => {
+const assignDriver = async (rideRequest, sessionOverride = null) => {
     const drivers = await findAvailableDrivers();
 
     if (!drivers.length) {
@@ -130,11 +130,10 @@ const assignDriver = async (rideRequest) => {
         );
     }
 
-    const session = await mongoose.startSession();
-    let rideId = null;
-    let driverUserId = null;
+    const createAssignment = async (session) => {
+        let rideId = null;
+        let driverUserId = null;
 
-    try {
         await session.withTransaction(async () => {
             let reservedDriver = null;
             let selectedVehicle = null;
@@ -206,44 +205,65 @@ const assignDriver = async (rideRequest) => {
             rideId = ride._id;
             driverUserId = reservedDriver.user.toString();
         });
+
+        return { rideId, driverUserId };
+    };
+
+    let assignment;
+    let ownedSession = false;
+    const session = sessionOverride || await mongoose.startSession();
+
+    try {
+        ownedSession = !sessionOverride;
+        assignment = await createAssignment(session);
     } catch (error) {
         if (!isDuplicateRideRequestError(error)) {
             throw error;
         }
 
-        const existingRide = await populateRideByRequest(rideRequest._id);
-
-        if (!existingRide) throw error;
-
-        rideId = existingRide._id;
-        driverUserId = existingRide.driver?.user?._id
-            ? String(existingRide.driver.user._id)
-            : String(existingRide.driver?.user || "");
+        assignment = { rideId: null, driverUserId: null };
     } finally {
-        await session.endSession();
+        if (ownedSession) {
+            await session.endSession();
+        }
     }
 
-    const populatedRide =
-        rideId &&
-        (await populateRide(rideId));
+    if (!assignment.rideId) {
+        const existingRide = await populateRideByRequest(rideRequest._id);
+
+        if (!existingRide) {
+            throw new ApiError(409, "Ride already exists for this request");
+        }
+
+        assignment = {
+            rideId: existingRide._id,
+            driverUserId: existingRide.driver?.user?._id
+                ? String(existingRide.driver.user._id)
+                : String(existingRide.driver?.user || ""),
+        };
+    }
+
+    const populatedRide = await populateRide(assignment.rideId);
 
     if (!populatedRide) {
         throw new ApiError(500, "Assigned ride could not be loaded");
     }
 
     const resolvedDriverUserId =
-        driverUserId ||
+        assignment.driverUserId ||
         populatedRide.driver?.user?._id ||
         populatedRide.driver?.user;
 
-    socketService.emitRideAssigned(
-        String(resolvedDriverUserId),
-        populatedRide
-    );
-    socketService.emitDriverStatus(
-        String(resolvedDriverUserId),
-        populatedRide.driver
-    );
+    if (!sessionOverride) {
+        socketService.emitRideAssigned(
+            String(resolvedDriverUserId),
+            populatedRide
+        );
+        socketService.emitDriverStatus(
+            String(resolvedDriverUserId),
+            populatedRide.driver
+        );
+    }
 
     return populatedRide;
 };
