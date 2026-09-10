@@ -96,6 +96,36 @@ describe("RideService.updateRideStatus", () => {
         ).rejects.toMatchObject({ statusCode: 400 });
     });
 
+    it("records arrival for an accepted assigned ride", async () => {
+        const driver = { _id: "driver-1" };
+        const ride = {
+            _id: "ride-1",
+            driver: { equals: vi.fn(() => true) },
+            status: RIDE_STATUS.ASSIGNED,
+            acceptedAt: new Date(),
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.ARRIVED };
+
+        Ride.findById
+            .mockResolvedValueOnce(ride)
+            .mockReturnValueOnce(createQuery(updatedRide));
+        Driver.findOne.mockResolvedValue(driver);
+
+        const result = await RideService.updateRideStatus(
+            "ride-1",
+            RIDE_STATUS.ARRIVED,
+            "user-1",
+            ROLES.DRIVER
+        );
+
+        expect(ride.status).toBe(RIDE_STATUS.ARRIVED);
+        expect(ride.arrivedAt).toBeInstanceOf(Date);
+        expect(ride.save).toHaveBeenCalledTimes(1);
+        expect(socketService.emitRideStatus).toHaveBeenCalledWith("user-1", updatedRide);
+        expect(result).toBe(updatedRide);
+    });
+
     it("enforces the arrived to picked-up transition", async () => {
         const ride = {
             status: RIDE_STATUS.ASSIGNED,
@@ -108,6 +138,32 @@ describe("RideService.updateRideStatus", () => {
         ).rejects.toMatchObject({ statusCode: 400 });
     });
 
+    it("records pickup only after arrival", async () => {
+        const ride = {
+            _id: "ride-1",
+            status: RIDE_STATUS.ARRIVED,
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.PICKED_UP };
+
+        Ride.findById
+            .mockResolvedValueOnce(ride)
+            .mockReturnValueOnce(createQuery(updatedRide));
+
+        const result = await RideService.updateRideStatus(
+            "ride-1",
+            RIDE_STATUS.PICKED_UP,
+            "user-1",
+            ROLES.ADMIN
+        );
+
+        expect(ride.status).toBe(RIDE_STATUS.PICKED_UP);
+        expect(ride.startedAt).toBeInstanceOf(Date);
+        expect(ride.save).toHaveBeenCalledTimes(1);
+        expect(socketService.emitRideStatus).toHaveBeenCalledWith("user-1", updatedRide);
+        expect(result).toBe(updatedRide);
+    });
+
     it("rejects completion before pickup", async () => {
         const ride = {
             status: RIDE_STATUS.ARRIVED,
@@ -118,6 +174,45 @@ describe("RideService.updateRideStatus", () => {
         await expect(
             RideService.updateRideStatus("ride-1", RIDE_STATUS.COMPLETED, "user-1", ROLES.ADMIN)
         ).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it("completes a picked-up ride and frees its driver", async () => {
+        const driver = {
+            _id: "driver-1",
+            user: "user-1",
+            status: DRIVER_STATUS.AVAILABLE,
+            currentRide: "ride-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        const ride = {
+            _id: "ride-1",
+            driver: "driver-1",
+            status: RIDE_STATUS.PICKED_UP,
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.COMPLETED };
+
+        Ride.findById
+            .mockResolvedValueOnce(ride)
+            .mockReturnValueOnce(createQuery(updatedRide));
+        Driver.findById.mockResolvedValue(driver);
+
+        const result = await RideService.updateRideStatus(
+            "ride-1",
+            RIDE_STATUS.COMPLETED,
+            "user-1",
+            ROLES.ADMIN
+        );
+
+        expect(ride.status).toBe(RIDE_STATUS.COMPLETED);
+        expect(ride.completedAt).toBeInstanceOf(Date);
+        expect(driver.status).toBe(DRIVER_STATUS.AVAILABLE);
+        expect(driver.currentRide).toBeNull();
+        expect(driver.freeAt).toBeInstanceOf(Date);
+        expect(driver.save).toHaveBeenCalledTimes(1);
+        expect(socketService.emitRideCompleted).toHaveBeenCalledWith("user-1", updatedRide);
+        expect(socketService.emitDriverStatus).toHaveBeenCalledWith("user-1", driver);
+        expect(result).toBe(updatedRide);
     });
 
     it("rejects invalid status transitions", async () => {
@@ -170,10 +265,11 @@ describe("RideService.acknowledgeRide", () => {
 });
 
 describe("RideService.cancelGuestRide", () => {
-    it("requires a cancellation reason", async () => {
+    it("requires a cancellation reason before loading guest data", async () => {
         await expect(
             RideService.cancelGuestRide("user-1", "ride-1", "")
         ).rejects.toMatchObject({ statusCode: 400 });
+        expect(Guest.findOne).not.toHaveBeenCalled();
     });
 
     it("rejects cancellation for a guest who is not on the ride", async () => {
@@ -204,6 +300,49 @@ describe("RideService.cancelGuestRide", () => {
             RideService.cancelGuestRide("user-1", "ride-1", "Change of plans")
         ).rejects.toMatchObject({ statusCode: 400 });
     });
+
+    it("cancels an active guest ride and frees the driver", async () => {
+        const guest = { _id: "guest-1" };
+        const driver = {
+            status: DRIVER_STATUS.AVAILABLE,
+            currentRide: "ride-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        const ride = {
+            _id: "ride-1",
+            guests: [{ equals: vi.fn(() => true) }],
+            status: RIDE_STATUS.ASSIGNED,
+            rideRequest: "request-1",
+            driver: "driver-1",
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+
+        Guest.findOne.mockResolvedValue(guest);
+        Ride.findById.mockResolvedValue(ride);
+        Driver.findById.mockResolvedValue(driver);
+        RideRequest.findByIdAndUpdate.mockResolvedValue(undefined);
+        Ride.findById.mockImplementationOnce(() => Promise.resolve(ride)).mockReturnValueOnce(createQuery(ride));
+
+        const result = await RideService.cancelGuestRide("user-1", "ride-1", " Change of plans ");
+
+        expect(ride.status).toBe(RIDE_STATUS.CANCELLED);
+        expect(ride.cancelReason).toBe("Change of plans");
+        expect(ride.cancelledBy).toBe("GUEST");
+        expect(ride.cancelledAt).toBeInstanceOf(Date);
+        expect(RideRequest.findByIdAndUpdate).toHaveBeenCalledWith(
+            "request-1",
+            expect.objectContaining({
+                status: "CANCELLED",
+                cancellationReason: "Change of plans",
+                cancelledBy: "GUEST",
+            })
+        );
+        expect(driver.status).toBe(DRIVER_STATUS.AVAILABLE);
+        expect(driver.currentRide).toBeNull();
+        expect(driver.freeAt).toBeInstanceOf(Date);
+        expect(driver.save).toHaveBeenCalledTimes(1);
+        expect(result).toBe(ride);
+    });
 });
 
 describe("RideService.declineRide", () => {
@@ -211,6 +350,7 @@ describe("RideService.declineRide", () => {
         await expect(
             RideService.declineRide("user-1", "ride-1", "")
         ).rejects.toMatchObject({ statusCode: 400 });
+        expect(Driver.findOne).not.toHaveBeenCalled();
     });
 
     it("rejects a ride that has already been accepted", async () => {
@@ -229,8 +369,3 @@ describe("RideService.declineRide", () => {
         ).rejects.toMatchObject({ statusCode: 400 });
     });
 });
-
-void Guest;
-void RideRequest;
-void socketService;
-void DRIVER_STATUS;
