@@ -134,10 +134,10 @@ describe("AuthService signup", () => {
 });
 
 describe("AuthService.googleLogin", () => {
-    it("rejects missing Google credentials", async () => {
-        const client = OAuth2Client.mock.instances[0];
-        client.verifyIdToken.mockResolvedValue({});
-
+    it("rejects missing Google credentials before verification", async () => {
         await expect(AuthService.googleLogin("")).rejects.toMatchObject({ statusCode: 400 });
+
+        const client = OAuth2Client.mock.results[0]?.value;
+        expect(client.verifyIdToken).not.toHaveBeenCalled();
     });
 });
