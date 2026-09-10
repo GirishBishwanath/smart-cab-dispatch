@@ -1,6 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 
 import AuthService from "./auth.service.js";
 import User from "../models/User.js";
@@ -35,6 +34,10 @@ vi.mock("../utils/hash.js", () => ({
 vi.mock("../utils/jwt.js", () => ({
     generateToken: vi.fn(() => "token"),
 }));
+
+beforeEach(() => {
+    vi.clearAllMocks();
+});
 
 describe("AuthService login", () => {
     it("rejects unknown or inactive users", async () => {
