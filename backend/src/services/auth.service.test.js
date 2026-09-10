@@ -5,7 +5,6 @@ import AuthService from "./auth.service.js";
 import User from "../models/User.js";
 import Guest from "../models/Guest.js";
 import { ROLES } from "../utils/constants.js";
-import { OAuth2Client } from "google-auth-library";
 
 vi.mock("../models/User.js", () => ({
     default: {
@@ -134,10 +133,11 @@ describe("AuthService signup", () => {
 });
 
 describe("AuthService.googleLogin", () => {
-    it("rejects missing Google credentials before verification", async () => {
+    it("rejects missing Google credentials", async () => {
         await expect(AuthService.googleLogin("")).rejects.toMatchObject({ statusCode: 400 });
 
-        const client = OAuth2Client.mock.results[0]?.value;
-        expect(client.verifyIdToken).not.toHaveBeenCalled();
+        const client = vi.mocked((await import("google-auth-library")).OAuth2Client).mock
+            .results[0]?.value;
+        expect(client?.verifyIdToken).not.toHaveBeenCalled();
     });
 });
