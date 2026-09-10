@@ -130,10 +130,7 @@ describe("GuestService.updateMyProfile", () => {
         };
 
         Guest.findOne.mockResolvedValue(guest);
-        User.findById.mockReturnValue({
-            select: vi.fn().mockResolvedValue(user),
-        });
-        User.findById.mockResolvedValueOnce(user);
+        User.findById.mockResolvedValue(user);
 
         const result = await GuestService.updateMyProfile("user-1", {
             fullName: "Updated Guest",
