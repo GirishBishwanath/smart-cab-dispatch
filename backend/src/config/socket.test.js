@@ -1,0 +1,235 @@
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+const ioMock = {
+    use: vi.fn(),
+    on: vi.fn(),
+};
+
+const ServerMock = vi.fn(() => ioMock);
+const jwtVerify = vi.fn();
+const userFindById = vi.fn();
+const driverFindOne = vi.fn();
+const rideFindById = vi.fn();
+
+vi.mock("socket.io", () => ({
+    Server: ServerMock,
+}));
+
+vi.mock("jsonwebtoken", () => ({
+    default: {
+        verify: jwtVerify,
+    },
+}));
+
+vi.mock("../models/User.js", () => ({
+    default: {
+        findById: userFindById,
+    },
+}));
+
+vi.mock("../models/Driver.js", () => ({
+    default: {
+        findOne: driverFindOne,
+    },
+}));
+
+vi.mock("../models/Ride.js", () => ({
+    default: {
+        findById: rideFindById,
+    },
+}));
+
+vi.mock("../models/Guest.js", () => ({
+    default: {},
+}));
+
+vi.mock("../config/env.js", () => ({
+    JWT_SECRET: "test-secret",
+    ALLOWED_ORIGINS: ["http://localhost:3000"],
+}));
+
+const { initializeSocket, emitToUser, getIO } = await import("./socket.js");
+
+const getMiddleware = () => ioMock.use.mock.calls[0][0];
+const getConnectionHandler = () => ioMock.on.mock.calls.find(([event]) => event === "connection")[1];
+
+const createSelectableQuery = (value) => ({
+    select: vi.fn().mockResolvedValue(value),
+});
+
+const createRideQuery = (value) => ({
+    populate: vi.fn().mockResolvedValue(value),
+});
+
+beforeEach(() => {
+    vi.clearAllMocks();
+});
+
+afterAll(() => {
+    vi.restoreAllMocks();
+});
+
+describe("initializeSocket", () => {
+    it("configures Socket.IO and returns the server instance", () => {
+        const httpServer = {};
+
+        expect(initializeSocket(httpServer)).toBe(ioMock);
+        expect(ServerMock).toHaveBeenCalledWith(httpServer, expect.objectContaining({
+            cors: expect.objectContaining({
+                origin: ["http://localhost:3000"],
+                credentials: true,
+            }),
+        }));
+        expect(ioMock.use).toHaveBeenCalledTimes(1);
+        expect(ioMock.on).toHaveBeenCalledWith("connection", expect.any(Function));
+        expect(getIO()).toBe(ioMock);
+    });
+
+    it("rejects socket connections without a token", async () => {
+        initializeSocket({});
+        const next = vi.fn();
+
+        await getMiddleware()({ handshake: { auth: {} } }, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "Authentication required" }));
+        expect(jwtVerify).not.toHaveBeenCalled();
+    });
+
+    it("rejects invalid tokens or inactive users", async () => {
+        initializeSocket({});
+        jwtVerify.mockReturnValue({ id: "user-1" });
+        userFindById.mockReturnValue(createSelectableQuery({
+            _id: "user-1",
+            isActive: false,
+        }));
+        const next = vi.fn();
+
+        await getMiddleware()({ handshake: { auth: { token: "bad" } } }, next);
+
+        expect(jwtVerify).toHaveBeenCalledWith("bad", "test-secret");
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({ message: "Invalid authentication token" }));
+    });
+
+    it("authenticates active users and attaches normalized socket user data", async () => {
+        initializeSocket({});
+        jwtVerify.mockReturnValue({ id: "user-1" });
+        userFindById.mockReturnValue(createSelectableQuery({
+            _id: "user-1",
+            fullName: "Driver",
+            email: "driver@example.com",
+            role: "DRIVER",
+            isActive: true,
+        }));
+        const next = vi.fn();
+        const socket = { handshake: { auth: { token: "valid" } } };
+
+        await getMiddleware()(socket, next);
+
+        expect(socket.user).toEqual({
+            id: "user-1",
+            fullName: "Driver",
+            email: "driver@example.com",
+            role: "DRIVER",
+        });
+        expect(next).toHaveBeenCalledWith();
+    });
+});
+
+describe("socket connection handlers", () => {
+    it("joins the user-specific driver room and confirms connection", () => {
+        initializeSocket({});
+        const socket = {
+            user: { id: "user-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+
+        getConnectionHandler()(socket);
+
+        expect(socket.join).toHaveBeenCalledWith("user:user-1");
+        expect(socket.join).toHaveBeenCalledWith("driver:user-1");
+        expect(socket.emit).toHaveBeenCalledWith("socket:connected", {
+            connected: true,
+            userId: "user-1",
+        });
+        expect(socket.on).toHaveBeenCalledWith("driver:location", expect.any(Function));
+    });
+
+    it("ignores driver location updates from non-drivers", async () => {
+        initializeSocket({});
+        const socket = {
+            user: { id: "user-1", role: "GUEST" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+
+        getConnectionHandler()(socket);
+        const locationHandler = socket.on.mock.calls.find(([event]) => event === "driver:location")[1];
+
+        await locationHandler({
+            rideId: "ride-1",
+            latitude: 12.97,
+            longitude: 77.59,
+        });
+
+        expect(driverFindOne).not.toHaveBeenCalled();
+    });
+
+    it("updates a driver's location and broadcasts it to ride guests and admins", async () => {
+        initializeSocket({});
+        const emit = vi.fn();
+        const to = vi.fn(() => ({ emit }));
+        ioMock.to = to;
+
+        const driver = {
+            currentRide: "ride-1",
+            currentLocation: null,
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        rideFindById.mockReturnValue(createRideQuery({
+            _id: "ride-1",
+            status: "ASSIGNED",
+            guests: [{ user: "guest-1" }, { user: "guest-2" }],
+        }));
+
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+
+        getConnectionHandler()(socket);
+        const locationHandler = socket.on.mock.calls.find(([event]) => event === "driver:location")[1];
+
+        await locationHandler({
+            latitude: 12.97,
+            longitude: 77.59,
+        });
+
+        expect(driver.currentLocation).toEqual({ latitude: 12.97, longitude: 77.59 });
+        expect(driver.save).toHaveBeenCalledTimes(1);
+        expect(rideFindById).toHaveBeenCalledWith("ride-1");
+        expect(to).toHaveBeenCalledWith("user:guest-1");
+        expect(to).toHaveBeenCalledWith("user:guest-2");
+        expect(to).toHaveBeenCalledWith("admins");
+        expect(emit).toHaveBeenCalledTimes(3);
+        expect(emit.mock.calls[0][0]).toBe("driver:location");
+    });
+});
+
+describe("emitToUser", () => {
+    it("emits to a normalized user room", () => {
+        initializeSocket({});
+        const emit = vi.fn();
+        ioMock.to = vi.fn(() => ({ emit }));
+
+        emitToUser("user-1", "ride:status", { rideId: "ride-1" });
+
+        expect(ioMock.to).toHaveBeenCalledWith("user:user-1");
+        expect(emit).toHaveBeenCalledWith("ride:status", { rideId: "ride-1" });
+    });
+});
