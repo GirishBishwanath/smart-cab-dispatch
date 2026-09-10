@@ -168,7 +168,11 @@ describe("DriverService.updateDriverStatus", () => {
         expect(driver.breakUntil).toBeNull();
         expect(driver.save).toHaveBeenCalledTimes(1);
         expect(socketService.emitDriverStatus).toHaveBeenCalledWith("user-1", driver);
-        expect(result).toBe(updated);
+        expect(result).toEqual(expect.objectContaining({
+            _id: "driver-1",
+            status: DRIVER_STATUS.AVAILABLE,
+        }));
+        expect(Driver.findById).toHaveBeenLastCalledWith("driver-1");
     });
 });
 
