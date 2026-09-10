@@ -42,6 +42,9 @@ const rideRequestSchema = new mongoose.Schema({
 
     approvedAt: { type: Date, default: null },
 
+    approvalLockId: { type: String, default: null },
+    approvalLockUntil: { type: Date, default: null },
+
     ride: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Ride",
