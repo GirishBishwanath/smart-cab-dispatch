@@ -1,23 +1,18 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import routingService from "./routing.service.js";
 
 describe("routingService.getDrivingRoute", () => {
     const originalFetch = globalThis.fetch;
-    const originalBaseUrl = process.env.OSRM_BASE_URL;
     const originalEtaFactor = process.env.OSRM_ETA_FACTOR;
 
     beforeEach(() => {
         vi.clearAllMocks();
         globalThis.fetch = vi.fn();
-        process.env.OSRM_BASE_URL = "https://router.test";
         process.env.OSRM_ETA_FACTOR = "1.4";
     });
 
     afterEach(() => {
         globalThis.fetch = originalFetch;
-
-        if (originalBaseUrl === undefined) delete process.env.OSRM_BASE_URL;
-        else process.env.OSRM_BASE_URL = originalBaseUrl;
 
         if (originalEtaFactor === undefined) delete process.env.OSRM_ETA_FACTOR;
         else process.env.OSRM_ETA_FACTOR = originalEtaFactor;
@@ -41,6 +36,8 @@ describe("routingService.getDrivingRoute", () => {
                 { latitude: 13, longitude: 78 }
             )
         ).rejects.toThrow("Invalid routing coordinates");
+
+        expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 
     it("maps an OSRM route into application metrics and geometry", async () => {
@@ -78,8 +75,8 @@ describe("routingService.getDrivingRoute", () => {
         });
 
         expect(globalThis.fetch).toHaveBeenCalledWith(
-            expect.stringContaining(
-                "https://router.project-osrm.org/route/v1/driving/77.1,12.9;77.2,13?overview=full&geometries=geojson&steps=false"
+            expect.stringMatching(
+                /^https:\/\/router\.project-osrm\.org\/route\/v1\/driving\/77\.1,12\.9;77\.2,13\.0\?overview=full&geometries=geojson&steps=false$/
             ),
             expect.objectContaining({
                 headers: { Accept: "application/json" },
