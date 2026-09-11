@@ -23,6 +23,14 @@ const authenticate = async (req, res, next) => {
         req.user = userDTO(user);
         next();
     } catch (error) {
+        if (
+            error?.name === "JsonWebTokenError" ||
+            error?.name === "TokenExpiredError" ||
+            error?.name === "NotBeforeError"
+        ) {
+            return next(new ApiError(401, "Invalid authentication token"));
+        }
+
         next(error);
     }
 };
