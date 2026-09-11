@@ -127,11 +127,15 @@ The current logging layer provides:
 - routing failures
 - production-safe HTTP error diagnostics
 
-The logger redacts common secret-bearing fields such as authorization headers, passwords, tokens, cookies, and client secrets. Internal stack traces are logged server-side for failures but are not returned to production clients.
+The logger redacts common secret-bearing fields such as authorization headers, passwords, tokens, cookies, and client secrets. Redaction is key-based rather than value-content scanning, so application code should continue to avoid logging arbitrary credential values in non-sensitive field names.
 
-The request middleware exposes the correlation identifier as `X-Request-ID`, allowing an operator to connect a client-visible failed request with the corresponding backend log entry.
+The request middleware exposes the correlation identifier as `X-Request-ID` and intentionally logs only the normalized request path, not query parameters. This prevents secrets accidentally placed in URLs from being copied into operational logs.
 
-This is intentionally a lightweight observability layer. A hosted log/metrics/APM product is not required at the current scale; it can be added later when log retention, dashboards, alerting, distributed tracing, or service-level metrics justify the operational dependency.
+Production HTTP error responses expose a generic message for server-side failures; internal stack traces remain server-side. The API also applies a 1 MB JSON request-body limit and a small baseline set of security response headers appropriate for a JSON API.
+
+The backend exposes `/health` for basic health, `/health/live` for process liveness, and `/health/ready` for readiness. Readiness stays false until MongoDB is connected and Socket.IO has been initialized; shutdown sets readiness false before closing active real-time and database connections.
+
+This is intentionally a lightweight observability and operational-safety layer. A hosted log/metrics/APM product is not required at the current scale; it can be added later when log retention, dashboards, alerting, distributed tracing, or service-level metrics justify the operational dependency.
 
 ## Caching
 
