@@ -22,10 +22,7 @@ const createRideRequest = async (userId, data) => {
         !Number.isFinite(data.pickupLocation.latitude) ||
         !Number.isFinite(data.pickupLocation.longitude)
     ) {
-        throw new ApiError(
-            400,
-            "A valid pickup location with coordinates is required."
-        );
+        throw new ApiError(400, "A valid pickup location with coordinates is required.");
     }
 
     if (
@@ -33,20 +30,14 @@ const createRideRequest = async (userId, data) => {
         !Number.isFinite(data.dropLocation.latitude) ||
         !Number.isFinite(data.dropLocation.longitude)
     ) {
-        throw new ApiError(
-            400,
-            "A valid destination with coordinates is required."
-        );
+        throw new ApiError(400, "A valid destination with coordinates is required.");
     }
 
     if (
         data.pickupLocation.latitude === data.dropLocation.latitude &&
         data.pickupLocation.longitude === data.dropLocation.longitude
     ) {
-        throw new ApiError(
-            400,
-            "Pickup and destination cannot be the same."
-        );
+        throw new ApiError(400, "Pickup and destination cannot be the same.");
     }
 
     const rideRequest = await RideRequest.create({
@@ -79,43 +70,38 @@ const withTransaction = async (callback) => {
 
     try {
         let result;
-
         await session.withTransaction(async () => {
             result = await callback(session);
         });
-
         return result;
     } finally {
         await session.endSession();
     }
 };
 
+const getRequestOrThrow = async (id, session, message = "Ride request already processed") => {
+    const existing = await RideRequest.findById(id).session(session);
+    if (!existing) throw new ApiError(404, "Ride request not found");
+    throw new ApiError(400, message);
+};
+
 const approveRideRequest = async (id) => {
-    const ride = await withTransaction(async (session) => {
+    const result = await withTransaction(async (session) => {
         const request = await RideRequest.findOneAndUpdate(
             { _id: id, status: "PENDING" },
             { $set: { status: "APPROVED", approvedAt: new Date() } },
             { new: true, session }
         );
 
-        if (!request) {
-            const existing = await RideRequest.findById(id).session(session);
+        if (!request) return getRequestOrThrow(id, session);
 
-            if (!existing) throw new ApiError(404, "Ride request not found");
-            throw new ApiError(400, "Ride request already processed");
-        }
-
-        try {
-            const assignedRide = await dispatchService.assignDriver(request, session);
-            request.ride = assignedRide._id;
-            await request.save({ session });
-            return assignedRide;
-        } catch (error) {
-            throw error;
-        }
+        const assignedRide = await dispatchService.assignDriver(request, session);
+        request.ride = assignedRide._id;
+        await request.save({ session });
+        return assignedRide;
     });
 
-    return ride;
+    return result;
 };
 
 const declineRideRequest = async (id, reason = "") => {
@@ -132,13 +118,7 @@ const declineRideRequest = async (id, reason = "") => {
             { new: true, session }
         );
 
-        if (!updated) {
-            const existing = await RideRequest.findById(id).session(session);
-
-            if (!existing) throw new ApiError(404, "Ride request not found");
-            throw new ApiError(400, "Ride request already processed");
-        }
-
+        if (!updated) return getRequestOrThrow(id, session);
         return updated;
     });
 
@@ -149,10 +129,7 @@ const cancelMyRideRequest = async (userId, id, reason = "") => {
     const guest = await Guest.findOne({ user: userId });
 
     if (!guest) throw new ApiError(404, "Guest not found");
-
-    if (!reason.trim()) {
-        throw new ApiError(400, "Cancellation reason is required.");
-    }
+    if (!reason.trim()) throw new ApiError(400, "Cancellation reason is required.");
 
     const request = await withTransaction(async (session) => {
         const updated = await RideRequest.findOneAndUpdate(
@@ -172,20 +149,14 @@ const cancelMyRideRequest = async (userId, id, reason = "") => {
             { new: true, session }
         );
 
-        if (!updated) {
-            const existing = await RideRequest.findById(id).session(session);
+        if (updated) return updated;
 
-            if (!existing) throw new ApiError(404, "Ride request not found");
-            if (!existing.guest.equals(guest._id)) {
-                throw new ApiError(403, "You cannot cancel this ride request.");
-            }
-            throw new ApiError(
-                400,
-                "Only pending ride requests can be cancelled."
-            );
+        const existing = await RideRequest.findById(id).session(session);
+        if (!existing) throw new ApiError(404, "Ride request not found");
+        if (!existing.guest.equals(guest._id)) {
+            throw new ApiError(403, "You cannot cancel this ride request.");
         }
-
-        return updated;
+        throw new ApiError(400, "Only pending ride requests can be cancelled.");
     });
 
     return populateRequest(RideRequest.findById(request._id));
