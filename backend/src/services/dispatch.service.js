@@ -9,6 +9,7 @@ import { haversineDistanceKm } from "../utils/geo.js";
 
 import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
+import logger from "../utils/logger.js";
 
 const populateRide = (rideId) =>
     Ride.findById(rideId)
@@ -69,6 +70,10 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
     const drivers = await findAvailableDrivers();
 
     if (!drivers.length) {
+        logger.warn("dispatch.assignment.rejected", {
+            rideRequestId: rideRequest?._id,
+            reason: "no_available_drivers",
+        });
         throw new ApiError(400, "No drivers available");
     }
 
@@ -106,6 +111,10 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
     }
 
     if (!eligibleDrivers.length) {
+        logger.warn("dispatch.assignment.rejected", {
+            rideRequestId: rideRequest?._id,
+            reason: "capacity_requirements",
+        });
         throw new ApiError(
             400,
             "No vehicle satisfies capacity requirements"
@@ -124,10 +133,11 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
         estimatedDistance = route.distanceKm;
         estimatedDuration = route.durationMinutes;
     } catch (error) {
-        console.error(
-            "Failed to calculate initial ride route:",
-            error.message
-        );
+        logger.warn("dispatch.route.fallback", {
+            rideRequestId: rideRequest?._id,
+            errorName: error?.name,
+            errorMessage: error?.message,
+        });
     }
 
     const createAssignment = async (session) => {
@@ -221,6 +231,9 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
             throw error;
         }
 
+        logger.info("dispatch.assignment.duplicate", {
+            rideRequestId: rideRequest?._id,
+        });
         assignment = { rideId: null, driverUserId: null };
     } finally {
         if (ownedSession) {
@@ -253,6 +266,13 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
         assignment.driverUserId ||
         populatedRide.driver?.user?._id ||
         populatedRide.driver?.user;
+
+    logger.info("dispatch.assignment.completed", {
+        rideRequestId: rideRequest?._id,
+        rideId: populatedRide._id,
+        driverId: populatedRide.driver?._id,
+        routeFallback: estimatedDistance === 0 && estimatedDuration === 0,
+    });
 
     if (!sessionOverride) {
         socketService.emitRideAssigned(
