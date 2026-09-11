@@ -10,6 +10,7 @@ import Ride from "../models/Ride.js";
 import "../models/Guest.js";
 
 import { ROLES, RIDE_STATUS } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 
 let io = null;
 
@@ -58,6 +59,9 @@ const initializeSocket = (
                     socket.handshake.auth?.token;
 
                 if (!token) {
+                    logger.warn("socket.auth.rejected", {
+                        reason: "missing_token",
+                    });
                     return next(
                         new Error(
                             "Authentication required"
@@ -82,6 +86,10 @@ const initializeSocket = (
                     !user ||
                     !user.isActive
                 ) {
+                    logger.warn("socket.auth.rejected", {
+                        reason: "invalid_or_inactive_user",
+                        userId: decoded?.id,
+                    });
                     return next(
                         new Error(
                             "Invalid authentication token"
@@ -98,10 +106,10 @@ const initializeSocket = (
 
                 next();
             } catch (error) {
-                console.error(
-                    "Socket authentication failed:",
-                    error.message
-                );
+                logger.warn("socket.auth.rejected", {
+                    reason: "verification_failed",
+                    errorName: error?.name,
+                });
 
                 next(
                     new Error(
@@ -118,9 +126,10 @@ const initializeSocket = (
             const userId =
                 socket.user.id;
 
-            console.log(
-                `🔌 Socket connected: ${userId}`
-            );
+            logger.info("socket.connected", {
+                userId,
+                role: socket.user.role,
+            });
 
             socket.join(
                 `user:${userId}`
@@ -199,6 +208,10 @@ const initializeSocket = (
                             });
 
                         if (!driver) {
+                            logger.warn("driver.location.rejected", {
+                                userId,
+                                reason: "driver_not_found",
+                            });
                             return;
                         }
 
@@ -287,10 +300,12 @@ const initializeSocket = (
                             locationPayload
                         );
                     } catch (error) {
-                        console.error(
-                            "Failed to process driver:location:",
-                            error.message
-                        );
+                        logger.error("driver.location.failed", {
+                            userId,
+                            rideId: payload?.rideId,
+                            errorMessage: error?.message,
+                            stack: error?.stack,
+                        });
                     }
                 }
             );
@@ -298,9 +313,10 @@ const initializeSocket = (
             socket.on(
                 "disconnect",
                 (reason) => {
-                    console.log(
-                        `🔌 Socket disconnected: ${userId} (${reason})`
-                    );
+                    logger.info("socket.disconnected", {
+                        userId,
+                        reason,
+                    });
                 }
             );
         }
@@ -323,7 +339,10 @@ const emitToUser = (userId, event, payload = {}) => {
     const io = getIO();
 
     if (!userId) {
-        console.warn(`⚠️ Cannot emit "${event}": userId is missing.`);
+        logger.warn("socket.emit.skipped", {
+            event,
+            reason: "missing_user_id",
+        });
         return;
     }
 
