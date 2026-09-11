@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Ride from "../models/Ride.js";
 import Driver from "../models/Driver.js";
 import Guest from "../models/Guest.js";
@@ -8,6 +9,12 @@ import { DRIVER_STATUS, RIDE_STATUS, ROLES } from "../utils/constants.js";
 import routingService from "./routing.service.js";
 import ApiError from "../utils/ApiError.js";
 import socketService from "./socket.service.js";
+
+const ACTIVE_RIDE_STATUSES = [
+    RIDE_STATUS.ASSIGNED,
+    RIDE_STATUS.ARRIVED,
+    RIDE_STATUS.PICKED_UP,
+];
 
 const populateRide = (rideId) =>
     Ride.findById(rideId)
@@ -23,80 +30,98 @@ const populateRide = (rideId) =>
         });
 
 const updateRideStatus = async (rideId, status, userId, userRole) => {
-    const ride = await Ride.findById(rideId);
+    const session = await mongoose.startSession();
 
-    if (!ride) throw new ApiError(404, "Ride not found");
+    try {
+        let updatedRideId;
+        let completedDriverUserId = null;
+        let completedDriver = null;
 
-    let driver = null;
+        await session.withTransaction(async () => {
+            const ride = await Ride.findOneAndUpdate(
+                {
+                    _id: rideId,
+                    ...(status === RIDE_STATUS.ARRIVED
+                        ? { status: RIDE_STATUS.ASSIGNED, acceptedAt: { $ne: null } }
+                        : status === RIDE_STATUS.PICKED_UP
+                            ? { status: RIDE_STATUS.ARRIVED }
+                            : status === RIDE_STATUS.COMPLETED
+                                ? { status: RIDE_STATUS.PICKED_UP }
+                                : { _id: rideId }),
+                },
+                {
+                    $set: {
+                        ...(status === RIDE_STATUS.ARRIVED
+                            ? { status: RIDE_STATUS.ARRIVED, arrivedAt: new Date() }
+                            : status === RIDE_STATUS.PICKED_UP
+                                ? { status: RIDE_STATUS.PICKED_UP, startedAt: new Date() }
+                                : status === RIDE_STATUS.COMPLETED
+                                    ? { status: RIDE_STATUS.COMPLETED, completedAt: new Date() }
+                                    : {}),
+                    },
+                },
+                { new: true, session }
+            );
 
-    if (userRole === ROLES.DRIVER) {
-        driver = await Driver.findOne({ user: userId });
+            if (!ride) {
+                const existing = await Ride.findById(rideId).session(session);
+                if (!existing) throw new ApiError(404, "Ride not found");
+                throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
+            }
 
-        if (!driver) throw new ApiError(404, "Driver not found");
+            if (userRole === ROLES.DRIVER) {
+                const driver = await Driver.findOne({ user: userId }).session(session);
 
-        if (!ride.driver?.equals(driver._id)) {
-            throw new ApiError(403, "This ride is not assigned to you.");
+                if (!driver) throw new ApiError(404, "Driver not found");
+                if (!ride.driver?.equals(driver._id)) {
+                    throw new ApiError(403, "This ride is not assigned to you.");
+                }
+
+                if (
+                    status === RIDE_STATUS.ARRIVED &&
+                    !ride.acceptedAt
+                ) {
+                    throw new ApiError(400, "Accept the ride before marking arrival.");
+                }
+            }
+
+            if (status === RIDE_STATUS.COMPLETED) {
+                const driver = await Driver.findByIdAndUpdate(
+                    ride.driver,
+                    {
+                        $set: {
+                            status: DRIVER_STATUS.AVAILABLE,
+                            currentRide: null,
+                            freeAt: new Date(),
+                        },
+                    },
+                    { new: true, session }
+                );
+
+                completedDriver = driver;
+                completedDriverUserId = driver?.user ?? null;
+            }
+
+            updatedRideId = ride._id;
+        });
+
+        const updatedRide = await populateRide(updatedRideId);
+        const driverUserId =
+            updatedRide?.driver?.user?._id ?? updatedRide?.driver?.user;
+
+        if (status === RIDE_STATUS.COMPLETED) {
+            if (driverUserId) socketService.emitRideCompleted(driverUserId, updatedRide);
+            if (completedDriverUserId && completedDriver) {
+                socketService.emitDriverStatus(completedDriverUserId, completedDriver);
+            }
+        } else if ([RIDE_STATUS.ARRIVED, RIDE_STATUS.PICKED_UP].includes(status)) {
+            if (driverUserId) socketService.emitRideStatus(driverUserId, updatedRide);
         }
+
+        return updatedRide;
+    } finally {
+        await session.endSession();
     }
-
-    switch (status) {
-        case RIDE_STATUS.ARRIVED:
-            if (ride.status !== RIDE_STATUS.ASSIGNED) {
-                throw new ApiError(400, "Ride must be assigned before arrival can be recorded.");
-            }
-
-            if (!ride.acceptedAt) {
-                throw new ApiError(400, "Accept the ride before marking arrival.");
-            }
-
-            ride.status = RIDE_STATUS.ARRIVED;
-            ride.arrivedAt ??= new Date();
-            break;
-
-        case RIDE_STATUS.PICKED_UP:
-            if (ride.status !== RIDE_STATUS.ARRIVED) {
-                throw new ApiError(400, "Driver must arrive before starting the ride.");
-            }
-
-            ride.status = RIDE_STATUS.PICKED_UP;
-            ride.startedAt ??= new Date();
-            break;
-
-        case RIDE_STATUS.COMPLETED:
-            if (ride.status !== RIDE_STATUS.PICKED_UP) {
-                throw new ApiError(400, "Ride must be started before completion.");
-            }
-
-            ride.status = RIDE_STATUS.COMPLETED;
-            ride.completedAt ??= new Date();
-
-            driver ??= await Driver.findById(ride.driver);
-
-            if (driver) {
-                driver.status = DRIVER_STATUS.AVAILABLE;
-                driver.currentRide = null;
-                driver.freeAt = new Date();
-                await driver.save();
-            }
-            break;
-
-        default:
-            throw new ApiError(400, "Invalid ride status");
-    }
-
-    await ride.save();
-
-    const updatedRide = await populateRide(ride._id);
-    const driverUserId = updatedRide?.driver?.user?._id ?? updatedRide?.driver?.user;
-
-    if (status === RIDE_STATUS.COMPLETED) {
-        if (driverUserId) socketService.emitRideCompleted(driverUserId, updatedRide);
-        if (driver) socketService.emitDriverStatus(driver.user, driver);
-    } else if ([RIDE_STATUS.ARRIVED, RIDE_STATUS.PICKED_UP].includes(status)) {
-        if (driverUserId) socketService.emitRideStatus(driverUserId, updatedRide);
-    }
-
-    return updatedRide;
 };
 
 const cancelGuestRide = async (userId, rideId, reason) => {
@@ -105,47 +130,78 @@ const cancelGuestRide = async (userId, rideId, reason) => {
     if (!guest) throw new ApiError(404, "Guest not found");
     if (!reason?.trim()) throw new ApiError(400, "Cancellation reason is required.");
 
-    const ride = await Ride.findById(rideId);
+    const session = await mongoose.startSession();
 
-    if (!ride) throw new ApiError(404, "Ride not found");
+    try {
+        let updatedRideId;
 
-    if (!ride.guests.some((id) => id.equals(guest._id))) {
-        throw new ApiError(403, "You cannot cancel this ride.");
-    }
+        await session.withTransaction(async () => {
+            const ride = await Ride.findOneAndUpdate(
+                {
+                    _id: rideId,
+                    guests: guest._id,
+                    status: { $in: ACTIVE_RIDE_STATUSES },
+                },
+                {
+                    $set: {
+                        status: RIDE_STATUS.CANCELLED,
+                        cancelReason: reason.trim(),
+                        cancelledAt: new Date(),
+                        cancelledBy: "GUEST",
+                    },
+                },
+                { new: true, session }
+            );
 
-    if (![RIDE_STATUS.ASSIGNED, RIDE_STATUS.ARRIVED, RIDE_STATUS.PICKED_UP].includes(ride.status)) {
-        throw new ApiError(400, "This ride can no longer be cancelled.");
-    }
+            if (!ride) {
+                const existing = await Ride.findById(rideId).session(session);
+                if (!existing) throw new ApiError(404, "Ride not found");
+                if (!existing.guests.some((id) => id.equals(guest._id))) {
+                    throw new ApiError(403, "You cannot cancel this ride.");
+                }
+                throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
+            }
 
-    const cancellationTime = new Date();
-    const cancellationReason = reason.trim();
+            if (ride.rideRequest) {
+                await RideRequest.findOneAndUpdate(
+                    {
+                        _id: ride.rideRequest,
+                        status: { $in: ["PENDING", "APPROVED"] },
+                    },
+                    {
+                        $set: {
+                            status: "CANCELLED",
+                            cancellationReason: reason.trim(),
+                            cancelledAt: ride.cancelledAt,
+                            cancelledBy: "GUEST",
+                        },
+                    },
+                    { session }
+                );
+            }
 
-    ride.status = RIDE_STATUS.CANCELLED;
-    ride.cancelReason = cancellationReason;
-    ride.cancelledAt = cancellationTime;
-    ride.cancelledBy = "GUEST";
+            await Driver.findOneAndUpdate(
+                {
+                    _id: ride.driver,
+                    currentRide: ride._id,
+                },
+                {
+                    $set: {
+                        status: DRIVER_STATUS.AVAILABLE,
+                        currentRide: null,
+                        freeAt: ride.cancelledAt,
+                    },
+                },
+                { session }
+            );
 
-    await ride.save();
-
-    if (ride.rideRequest) {
-        await RideRequest.findByIdAndUpdate(ride.rideRequest, {
-            status: "CANCELLED",
-            cancellationReason,
-            cancelledAt: cancellationTime,
-            cancelledBy: "GUEST",
+            updatedRideId = ride._id;
         });
+
+        return populateRide(updatedRideId);
+    } finally {
+        await session.endSession();
     }
-
-    const driver = await Driver.findById(ride.driver);
-
-    if (driver) {
-        driver.status = DRIVER_STATUS.AVAILABLE;
-        driver.currentRide = null;
-        driver.freeAt = cancellationTime;
-        await driver.save();
-    }
-
-    return populateRide(ride._id);
 };
 
 const declineRide = async (userId, rideId, reason) => {
@@ -155,44 +211,79 @@ const declineRide = async (userId, rideId, reason) => {
 
     if (!driver) throw new ApiError(404, "Driver not found");
 
-    const ride = await Ride.findById(rideId);
+    const session = await mongoose.startSession();
 
-    if (!ride) throw new ApiError(404, "Ride not found");
+    try {
+        let updatedRideId;
 
-    if (!ride.driver?.equals(driver._id)) {
-        throw new ApiError(403, "This ride is not assigned to you.");
-    }
+        await session.withTransaction(async () => {
+            const ride = await Ride.findOneAndUpdate(
+                {
+                    _id: rideId,
+                    driver: driver._id,
+                    status: RIDE_STATUS.ASSIGNED,
+                    acceptedAt: null,
+                },
+                {
+                    $set: {
+                        status: RIDE_STATUS.CANCELLED,
+                        cancelReason: reason.trim(),
+                        cancelledAt: new Date(),
+                        cancelledBy: "DRIVER",
+                    },
+                },
+                { new: true, session }
+            );
 
-    if (ride.status !== RIDE_STATUS.ASSIGNED || ride.acceptedAt) {
-        throw new ApiError(400, "Only unaccepted assigned rides can be declined.");
-    }
+            if (!ride) {
+                const existing = await Ride.findById(rideId).session(session);
+                if (!existing) throw new ApiError(404, "Ride not found");
+                if (!existing.driver?.equals(driver._id)) {
+                    throw new ApiError(403, "This ride is not assigned to you.");
+                }
+                throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
+            }
 
-    const cancellationTime = new Date();
-    const declineReason = reason.trim();
+            if (ride.rideRequest) {
+                await RideRequest.findOneAndUpdate(
+                    {
+                        _id: ride.rideRequest,
+                        status: "APPROVED",
+                    },
+                    {
+                        $set: {
+                            status: "DRIVER_DECLINED",
+                            cancellationReason: reason.trim(),
+                            cancelledAt: ride.cancelledAt,
+                            cancelledBy: "DRIVER",
+                        },
+                    },
+                    { session }
+                );
+            }
 
-    ride.status = RIDE_STATUS.CANCELLED;
-    ride.cancelReason = declineReason;
-    ride.cancelledAt = cancellationTime;
-    ride.cancelledBy = "DRIVER";
+            await Driver.findOneAndUpdate(
+                {
+                    _id: driver._id,
+                    currentRide: ride._id,
+                },
+                {
+                    $set: {
+                        status: DRIVER_STATUS.AVAILABLE,
+                        currentRide: null,
+                        freeAt: ride.cancelledAt,
+                    },
+                },
+                { session }
+            );
 
-    await ride.save();
-
-    if (ride.rideRequest) {
-        await RideRequest.findByIdAndUpdate(ride.rideRequest, {
-            status: "DRIVER_DECLINED",
-            cancellationReason: declineReason,
-            cancelledAt: cancellationTime,
-            cancelledBy: "DRIVER",
+            updatedRideId = ride._id;
         });
+
+        return populateRide(updatedRideId);
+    } finally {
+        await session.endSession();
     }
-
-    driver.status = DRIVER_STATUS.AVAILABLE;
-    driver.currentRide = null;
-    driver.freeAt = cancellationTime;
-
-    await driver.save();
-
-    return populateRide(ride._id);
 };
 
 const getRides = async () =>
@@ -247,11 +338,7 @@ const getCurrentDriverRide = async (userId) => {
     return Ride.findOne({
         driver: driver._id,
         status: {
-            $in: [
-                RIDE_STATUS.ASSIGNED,
-                RIDE_STATUS.ARRIVED,
-                RIDE_STATUS.PICKED_UP,
-            ],
+            $in: ACTIVE_RIDE_STATUSES,
         },
     })
         .sort({ createdAt: -1 })
@@ -304,11 +391,7 @@ const getCurrentGuestRide = async (userId) => {
     return Ride.findOne({
         guests: guest._id,
         status: {
-            $in: [
-                RIDE_STATUS.ASSIGNED,
-                RIDE_STATUS.ARRIVED,
-                RIDE_STATUS.PICKED_UP,
-            ],
+            $in: ACTIVE_RIDE_STATUSES,
         },
     })
         .sort({ createdAt: -1 })
@@ -358,23 +441,29 @@ const acknowledgeRide = async (rideId, userId) => {
 
     if (!driver) throw new ApiError(404, "Driver not found");
 
-    const ride = await Ride.findById(rideId);
+    const ride = await Ride.findOneAndUpdate(
+        {
+            _id: rideId,
+            driver: driver._id,
+            status: RIDE_STATUS.ASSIGNED,
+            acceptedAt: null,
+        },
+        {
+            $set: { acceptedAt: new Date() },
+        },
+        { new: true }
+    );
 
-    if (!ride) throw new ApiError(404, "Ride not found");
-
-    if (!ride.driver?.equals(driver._id)) {
-        throw new ApiError(403, "This ride is not assigned to you.");
+    if (!ride) {
+        const existing = await Ride.findById(rideId);
+        if (!existing) throw new ApiError(404, "Ride not found");
+        if (!existing.driver?.equals(driver._id)) {
+            throw new ApiError(403, "This ride is not assigned to you.");
+        }
+        throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
     }
-
-    if (ride.status !== RIDE_STATUS.ASSIGNED) {
-        throw new ApiError(400, "Only assigned rides can be acknowledged.");
-    }
-
-    ride.acceptedAt ??= new Date();
-    await ride.save();
 
     const updatedRide = await populateRide(rideId);
-
     socketService.emitRideAccepted(driver.user, updatedRide);
 
     return updatedRide;
