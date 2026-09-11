@@ -66,11 +66,15 @@ describe("authentication HTTP integration", () => {
 
         const persistedUser = await User.findOne({
             email: "http-integration@example.com",
-        });
-        const persistedGuest = await Guest.findOne({ user: persistedUser._id });
-
+        }).select("+password");
         expect(persistedUser).not.toBeNull();
+
+        const persistedGuest = await Guest.findOne({
+            user: persistedUser._id,
+        });
+
         expect(persistedGuest).not.toBeNull();
+        expect(persistedUser.password).toEqual(expect.any(String));
         expect(persistedUser.password).not.toBe("strong-password");
     });
 
@@ -84,7 +88,12 @@ describe("authentication HTTP integration", () => {
             }),
         });
         const loginBody = await login.json();
+
+        expect(login.status).toBe(200);
+        expect(loginBody.success).toBe(true);
+
         const token = loginBody.data.token;
+        expect(token).toEqual(expect.any(String));
 
         const response = await fetch(`${baseUrl}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` },
