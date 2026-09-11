@@ -9,6 +9,7 @@ import guestRoutes from "./routes/guest.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import rideRequestRoutes from "./routes/rideRequest.routes.js";
 import rideRoutes from "./routes/ride.routes.js";
+import requestLogger from "./middleware/request-logger.middleware.js";
 import errorHandler from "./middleware/error.middleware.js";
 
 const app = express();
@@ -26,6 +27,7 @@ app.use(
     })
 );
 app.use(express.json());
+app.use(requestLogger);
 
 app.get("/", (req, res) =>
     res.json({
