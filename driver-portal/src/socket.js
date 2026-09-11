@@ -25,12 +25,10 @@ const createSocket = () => {
         SOCKET_URL,
         {
             autoConnect: true,
-
             transports: [
                 "websocket",
                 "polling",
             ],
-
             auth: {
                 token,
             },
@@ -107,14 +105,41 @@ const disconnectSocket = () => {
     socket = null;
 };
 
+const sendLocation = ({
+    rideId,
+    latitude,
+    longitude,
+}) => {
+    const instance = getSocket();
+
+    if (!instance) {
+        return false;
+    }
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return false;
+    }
+
+    instance.emit("driver:location", {
+        rideId,
+        latitude,
+        longitude,
+        clientUpdatedAt: new Date().toISOString(),
+    });
+
+    return true;
+};
+
 export {
     getSocket,
     connectSocket,
     disconnectSocket,
+    sendLocation,
 };
 
 export default {
     getSocket,
     connectSocket,
     disconnectSocket,
+    sendLocation,
 };
