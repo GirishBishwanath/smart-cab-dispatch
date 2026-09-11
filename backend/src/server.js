@@ -34,38 +34,44 @@ const startServer = async () => {
     }
 };
 
-const shutdown = (signal) => {
+const shutdown = async (signal) => {
     if (shuttingDown) return;
     shuttingDown = true;
     setReadiness(false);
     logger.info("server.shutdown.started", { signal });
 
-    closeSocket();
-    server.close(async (error) => {
-        if (error) {
-            logger.error("server.shutdown.http.failed", {
-                signal,
-                errorMessage: error?.message,
-                stack: error?.stack,
-            });
-            process.exitCode = 1;
-        }
-
-        try {
-            await mongoose.connection.close();
-            logger.info("server.shutdown.completed", { signal });
-        } catch (shutdownError) {
-            logger.error("server.shutdown.failed", {
-                signal,
-                errorMessage: shutdownError?.message,
-                stack: shutdownError?.stack,
-            });
-            process.exitCode = 1;
-        }
-    });
+    try {
+        await closeSocket();
+        await mongoose.connection.close();
+        logger.info("server.shutdown.completed", { signal });
+    } catch (error) {
+        logger.error("server.shutdown.failed", {
+            signal,
+            errorMessage: error?.message,
+            stack: error?.stack,
+        });
+        process.exitCode = 1;
+    }
 };
 
-process.once("SIGTERM", () => shutdown("SIGTERM"));
-process.once("SIGINT", () => shutdown("SIGINT"));
+process.once("SIGTERM", () => {
+    shutdown("SIGTERM").catch((error) => {
+        logger.error("server.shutdown.unhandled", {
+            errorMessage: error?.message,
+            stack: error?.stack,
+        });
+        process.exitCode = 1;
+    });
+});
+
+process.once("SIGINT", () => {
+    shutdown("SIGINT").catch((error) => {
+        logger.error("server.shutdown.unhandled", {
+            errorMessage: error?.message,
+            stack: error?.stack,
+        });
+        process.exitCode = 1;
+    });
+});
 
 startServer();
