@@ -15,7 +15,7 @@ const SENSITIVE_KEYS = new Set([
     "secret",
 ]);
 
-const sanitize = (value, ancestors = new WeakSet()) => {
+const sanitize = (value, ancestors = new Set()) => {
     if (value == null) return value;
     if (typeof value !== "object") return value;
 
@@ -29,7 +29,7 @@ const sanitize = (value, ancestors = new WeakSet()) => {
         };
     }
 
-    const nextAncestors = new WeakSet(ancestors);
+    const nextAncestors = new Set(ancestors);
     nextAncestors.add(value);
 
     if (Array.isArray(value)) {
