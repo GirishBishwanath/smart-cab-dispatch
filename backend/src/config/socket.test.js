@@ -257,7 +257,39 @@ describe("socket connection handlers", () => {
         expect(driver.save).not.toHaveBeenCalled();
     });
 
-    it("updates a driver's location and broadcasts it to ride guests and admins", async () => {
+    it("rejects a client timestamp that is in the future", async () => {
+        initializeSocket({});
+        const driver = {
+            currentRide: "ride-1",
+            locationUpdatedAt: null,
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        rideFindById.mockReturnValue(createRideQuery({
+            _id: "ride-1",
+            status: "ASSIGNED",
+            guests: [],
+        }));
+
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        const future = new Date(Date.now() + 60_000).toISOString();
+        await locationHandler({
+            latitude: 12.97,
+            longitude: 77.59,
+            clientUpdatedAt: future,
+        });
+
+        expect(driver.save).not.toHaveBeenCalled();
+    });
+
+    it("persists a valid location and broadcasts it with a server timestamp", async () => {
         initializeSocket({});
         const emit = vi.fn();
         const to = vi.fn(() => ({ emit }));
@@ -299,6 +331,11 @@ describe("socket connection handlers", () => {
         expect(to).toHaveBeenCalledWith("admins");
         expect(emit).toHaveBeenCalledTimes(3);
         expect(emit.mock.calls[0][0]).toBe("driver:location");
+        expect(emit.mock.calls[0][1]).toEqual(expect.objectContaining({
+            latitude: 12.97,
+            longitude: 77.59,
+            updatedAt: expect.any(String),
+        }));
     });
 });
 
