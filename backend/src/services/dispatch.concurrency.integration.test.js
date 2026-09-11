@@ -34,7 +34,14 @@ describe("dispatch concurrency integration", () => {
     });
 
     beforeEach(async () => {
-        await mongoose.connection.dropDatabase();
+        await Promise.all([
+            RideRequest.deleteMany({}),
+            Ride.deleteMany({}),
+            Vehicle.deleteMany({}),
+            Driver.deleteMany({}),
+            Guest.deleteMany({}),
+            User.deleteMany({}),
+        ]);
     });
 
     afterAll(async () => {
