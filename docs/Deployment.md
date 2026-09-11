@@ -53,17 +53,17 @@ ALLOWED_ORIGINS=<production frontend origins>
 
 Render provides `PORT` for the running service. The application also has a local fallback port for development.
 
-### MongoDB transaction requirement
+### MongoDB transaction and index requirements
 
-Phase 5 uses MongoDB multi-document transactions to keep driver reservation, ride creation, driver linkage, and ride lifecycle mutations atomic. Production therefore requires MongoDB deployment topology that supports transactions; the project's MongoDB Atlas production environment satisfies this requirement.
+Phase 5 uses MongoDB multi-document transactions to keep driver reservation, ride creation, driver linkage, and ride lifecycle mutations atomic. Production therefore requires a MongoDB deployment topology that supports transactions; the production MongoDB Atlas deployment must satisfy this requirement.
 
-When rolling out the Phase 5 schema changes, verify the `Ride.rideRequest` unique sparse index is created successfully. Before applying it to an existing production dataset, check for duplicate non-null `rideRequest` values and resolve them before index creation. Do not manually create a competing index with different options.
+Phase 5 also adds a unique sparse index on `Ride.rideRequest` so one ride request cannot produce multiple rides. Before rolling the schema change into an existing production dataset, verify that all non-null `rideRequest` values are unique and confirm that the index can be created successfully. Do not manually create a competing index with different options.
 
 ### Docker deployment decision
 
 A production Docker migration is **not currently required**. The repository has a validated backend Dockerfile, and Render supports Docker-based services, but the existing native Node deployment already matches the application's runtime needs. Migrating the Render service to Docker would add deployment configuration churn without solving a demonstrated production problem.
 
-Keep the Docker image as the reproducible runtime artifact used for local validation and CI. Revisit a Render Docker deployment if the project later needs tighter OS/runtime control, guaranteed image parity with another environment, or other Docker-specific operational requirements.
+Keep the Docker image as the reproducible runtime artifact used for local validation and CI. Revisit a Render Docker deployment if the project later needs tighter OS/runtime control, guaranteed image parity with another environment, or another concrete Docker-specific operational requirement.
 
 ## Frontends — Vercel
 
