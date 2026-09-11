@@ -29,7 +29,10 @@ describe("authentication HTTP integration", () => {
 
         await mongoose.connect(MONGO_URI);
         await Promise.all([User.init(), Guest.init()]);
-        await mongoose.connection.dropDatabase();
+        await Promise.all([
+            Guest.deleteMany({}),
+            User.deleteMany({}),
+        ]);
 
         server = await startHttpServer();
         baseUrl = `http://127.0.0.1:${server.address().port}`;
