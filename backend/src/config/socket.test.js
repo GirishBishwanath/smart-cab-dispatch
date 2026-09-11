@@ -289,7 +289,35 @@ describe("socket connection handlers", () => {
         expect(driver.save).not.toHaveBeenCalled();
     });
 
-    it("persists a valid location and broadcasts it with a server timestamp", async () => {
+    it("ignores an older client timestamp than the persisted driver location", async () => {
+        initializeSocket({});
+        const olderTimestamp = new Date(Date.now() - 60_000);
+        const driver = {
+            currentRide: "ride-1",
+            locationUpdatedAt: olderTimestamp,
+            save: vi.fn().mockResolvedValue(undefined),
+        };
+        driverFindOne.mockResolvedValue(driver);
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        const staleTimestamp = new Date(olderTimestamp.getTime() - 1_000).toISOString();
+        await locationHandler({
+            latitude: 12.97,
+            longitude: 77.59,
+            clientUpdatedAt: staleTimestamp,
+        });
+
+        expect(rideFindById).not.toHaveBeenCalled();
+        expect(driver.save).not.toHaveBeenCalled();
+    });
+
+    it("persists a valid location and broadcasts it with a server-derived timestamp", async () => {
         initializeSocket({});
         const emit = vi.fn();
         const to = vi.fn(() => ({ emit }));
@@ -317,13 +345,15 @@ describe("socket connection handlers", () => {
 
         const locationHandler = getLocationHandler(socket);
 
+        const clientUpdatedAt = new Date(Date.now() - 1_000).toISOString();
         await locationHandler({
             latitude: 12.97,
             longitude: 77.59,
+            clientUpdatedAt,
         });
 
         expect(driver.currentLocation).toEqual({ latitude: 12.97, longitude: 77.59 });
-        expect(driver.locationUpdatedAt).toBeInstanceOf(Date);
+        expect(driver.locationUpdatedAt).toEqual(new Date(clientUpdatedAt));
         expect(driver.save).toHaveBeenCalledTimes(1);
         expect(rideFindById).toHaveBeenCalledWith("ride-1");
         expect(to).toHaveBeenCalledWith("user:guest-1");
@@ -334,7 +364,7 @@ describe("socket connection handlers", () => {
         expect(emit.mock.calls[0][1]).toEqual(expect.objectContaining({
             latitude: 12.97,
             longitude: 77.59,
-            updatedAt: expect.any(String),
+            updatedAt: clientUpdatedAt,
         }));
     });
 });
