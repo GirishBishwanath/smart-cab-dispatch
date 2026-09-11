@@ -15,10 +15,12 @@ import socketService from "../services/socket.service.js";
 
 const MONGO_URI = process.env.MONGO_URI;
 
+if (!MONGO_URI) {
+    throw new Error("MONGO_URI is required for integration tests");
+}
+
 describe("dispatch concurrency integration", () => {
     beforeAll(async () => {
-        if (!MONGO_URI) return;
-
         await mongoose.connect(MONGO_URI);
 
         await Promise.all([
@@ -32,7 +34,6 @@ describe("dispatch concurrency integration", () => {
     });
 
     beforeEach(async () => {
-        if (!MONGO_URI) return;
         await mongoose.connection.dropDatabase();
     });
 
@@ -43,10 +44,6 @@ describe("dispatch concurrency integration", () => {
     });
 
     it("allows only one concurrent approval to reserve the same driver", async () => {
-        if (!MONGO_URI) {
-            return;
-        }
-
         const routeSpy = vi
             .spyOn(routingService, "getDrivingRoute")
             .mockResolvedValue({
