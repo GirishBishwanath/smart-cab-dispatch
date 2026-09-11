@@ -169,6 +169,7 @@ describe("RideService.updateRideStatus", () => {
             _id: "ride-1",
             status: RIDE_STATUS.COMPLETED,
             driver: "driver-1",
+            completedAt: new Date(),
         };
         const driver = { _id: "driver-1", user: "user-1", status: DRIVER_STATUS.AVAILABLE };
 

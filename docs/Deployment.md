@@ -14,7 +14,7 @@ Smart Cab Dispatch is deployed as five independent applications from one GitHub 
 
 ## Deployment pipeline
 
-The repository uses GitHub Actions as the CI quality gate for changes pushed to `main` and for pull requests. The workflow installs dependencies and validates lint/build for all four frontend applications, validates backend syntax, and builds the backend Docker image. The CI workflow does not deploy production itself.
+The repository uses GitHub Actions as the CI quality gate for changes pushed to `main` and for pull requests. The workflow installs dependencies and validates lint/build for all four frontend applications, validates backend syntax and tests, and builds the backend Docker image. The CI workflow does not deploy production itself.
 
 The current production deployment path remains hosting-provider driven:
 
@@ -52,6 +52,12 @@ ALLOWED_ORIGINS=<production frontend origins>
 ```
 
 Render provides `PORT` for the running service. The application also has a local fallback port for development.
+
+### MongoDB transaction requirement
+
+Phase 5 uses MongoDB multi-document transactions to keep driver reservation, ride creation, driver linkage, and ride lifecycle mutations atomic. Production therefore requires MongoDB deployment topology that supports transactions; the project's MongoDB Atlas production environment satisfies this requirement.
+
+When rolling out the Phase 5 schema changes, verify the `Ride.rideRequest` unique sparse index is created successfully. Before applying it to an existing production dataset, check for duplicate non-null `rideRequest` values and resolve them before index creation. Do not manually create a competing index with different options.
 
 ### Docker deployment decision
 
@@ -129,7 +135,7 @@ Google Identity Services requires the production frontend origin to be registere
 ## Deployment order
 
 1. Open a pull request for application changes.
-2. GitHub Actions validates dependencies, lint/build, backend syntax, and the backend Docker image.
+2. GitHub Actions validates dependencies, lint/build, backend syntax/tests, and the backend Docker image.
 3. Merge the validated change into `main`.
 4. Vercel deploys the affected frontend project(s) from `main`.
 5. Render deploys the backend from `main` using its existing native Node runtime.
