@@ -29,190 +29,307 @@ const isValidLocation = (latitude, longitude) =>
     longitude <= 180 &&
     !(latitude === 0 && longitude === 0);
 
-const initializeSocket = (httpServer) => {
-    io = new Server(httpServer, {
-        cors: {
-            origin: ALLOWED_ORIGINS,
-            methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
-            credentials: true,
-        },
-    });
-
-    io.use(async (socket, next) => {
-        try {
-            const token = socket.handshake.auth?.token;
-
-            if (!token) {
-                logger.warn("socket.auth.rejected", {
-                    reason: "missing_token",
-                });
-                return next(new Error("Authentication required"));
-            }
-
-            const decoded = jwt.verify(token, JWT_SECRET);
-            const user = await User.findById(decoded.id).select("-password -__v");
-
-            if (!user || !user.isActive) {
-                logger.warn("socket.auth.rejected", {
-                    reason: "invalid_or_inactive_user",
-                    userId: decoded?.id,
-                });
-                return next(new Error("Invalid authentication token"));
-            }
-
-            socket.user = {
-                id: user._id.toString(),
-                fullName: user.fullName,
-                email: user.email,
-                role: user.role,
-            };
-
-            next();
-        } catch (error) {
-            logger.warn("socket.auth.rejected", {
-                reason: "verification_failed",
-                errorName: error?.name,
-            });
-
-            next(new Error("Invalid authentication token"));
+const initializeSocket = (
+    httpServer
+) => {
+    io = new Server(
+        httpServer,
+        {
+            cors: {
+                origin: ALLOWED_ORIGINS,
+                methods: [
+                    "GET",
+                    "POST",
+                    "PATCH",
+                    "PUT",
+                    "DELETE",
+                ],
+                credentials: true,
+            },
         }
-    });
+    );
 
-    io.on("connection", (socket) => {
-        const userId = socket.user.id;
-
-        logger.info("socket.connected", {
-            userId,
-            role: socket.user.role,
-        });
-
-        socket.join(`user:${userId}`);
-
-        if (socket.user.role === ROLES.DRIVER) {
-            socket.join(`driver:${userId}`);
-        }
-
-        if (socket.user.role === ROLES.ADMIN) {
-            socket.join("admins");
-        }
-
-        socket.emit("socket:connected", {
-            connected: true,
-            userId,
-        });
-
-        socket.on("driver:location", async (payload) => {
+    io.use(
+        async (
+            socket,
+            next
+        ) => {
             try {
-                if (socket.user.role !== ROLES.DRIVER) return;
+                const token =
+                    socket.handshake.auth?.token;
 
-                const { rideId, latitude, longitude, clientUpdatedAt } =
-                    payload || {};
-
-                if (!isValidLocation(latitude, longitude)) return;
-
-                const clientTimestamp =
-                    clientUpdatedAt == null ? null : Date.parse(clientUpdatedAt);
-
-                if (
-                    clientUpdatedAt != null &&
-                    !Number.isFinite(clientTimestamp)
-                ) {
-                    return;
-                }
-
-                const now = Date.now();
-
-                if (clientTimestamp != null && clientTimestamp > now + 30_000) {
-                    return;
-                }
-
-                const driver = await Driver.findOne({ user: userId });
-
-                if (!driver) {
-                    logger.warn("driver.location.rejected", {
-                        userId,
-                        reason: "driver_not_found",
+                if (!token) {
+                    logger.warn("socket.auth.rejected", {
+                        reason: "missing_token",
                     });
-                    return;
+                    return next(
+                        new Error(
+                            "Authentication required"
+                        )
+                    );
                 }
 
-                const targetRideId = rideId || driver.currentRide?.toString();
+                const decoded =
+                    jwt.verify(
+                        token,
+                        JWT_SECRET
+                    );
 
-                if (!targetRideId) return;
+                const user =
+                    await User.findById(
+                        decoded.id
+                    ).select(
+                        "-password -__v"
+                    );
 
                 if (
-                    !driver.currentRide ||
-                    driver.currentRide?.toString() !== targetRideId.toString()
+                    !user ||
+                    !user.isActive
                 ) {
-                    return;
+                    logger.warn("socket.auth.rejected", {
+                        reason: "invalid_or_inactive_user",
+                        userId: decoded?.id,
+                    });
+                    return next(
+                        new Error(
+                            "Invalid authentication token"
+                        )
+                    );
                 }
 
-                if (
-                    driver.locationUpdatedAt &&
-                    clientTimestamp != null &&
-                    clientTimestamp <= driver.locationUpdatedAt.getTime()
-                ) {
-                    return;
-                }
-
-                const ride = await Ride.findById(targetRideId).populate({
-                    path: "guests",
-                    select: "user",
-                });
-
-                if (!ride || !TRACKABLE_RIDE_STATUSES.includes(ride.status)) {
-                    return;
-                }
-
-                const updatedAt = new Date(clientTimestamp ?? now);
-
-                driver.currentLocation = { latitude, longitude };
-                driver.locationUpdatedAt = updatedAt;
-                await driver.save();
-
-                const locationPayload = {
-                    rideId: ride._id.toString(),
-                    latitude,
-                    longitude,
-                    updatedAt: updatedAt.toISOString(),
+                socket.user = {
+                    id: user._id.toString(),
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
                 };
 
-                const guestUserIds = (ride.guests || [])
-                    .map((guest) => guest?.user?.toString())
-                    .filter(Boolean);
-
-                guestUserIds.forEach((guestUserId) => {
-                    io.to(`user:${guestUserId}`).emit(
-                        "driver:location",
-                        locationPayload
-                    );
-                });
-
-                io.to("admins").emit("driver:location", locationPayload);
+                next();
             } catch (error) {
-                logger.error("driver.location.failed", {
-                    userId,
-                    rideId: payload?.rideId,
-                    errorMessage: error?.message,
-                    stack: error?.stack,
+                logger.warn("socket.auth.rejected", {
+                    reason: "verification_failed",
+                    errorName: error?.name,
                 });
-            }
-        });
 
-        socket.on("disconnect", (reason) => {
-            logger.info("socket.disconnected", {
+                next(
+                    new Error(
+                        "Invalid authentication token"
+                    )
+                );
+            }
+        }
+    );
+
+    io.on(
+        "connection",
+        (socket) => {
+            const userId =
+                socket.user.id;
+
+            logger.info("socket.connected", {
                 userId,
-                reason,
+                role: socket.user.role,
             });
-        });
-    });
+
+            socket.join(
+                `user:${userId}`
+            );
+
+            if (
+                socket.user.role ===
+                ROLES.DRIVER
+            ) {
+                socket.join(
+                    `driver:${userId}`
+                );
+            }
+
+            if (
+                socket.user.role ===
+                ROLES.ADMIN
+            ) {
+                socket.join("admins");
+            }
+
+            socket.emit(
+                "socket:connected",
+                {
+                    connected: true,
+                    userId,
+                }
+            );
+
+            socket.on(
+                "driver:location",
+                async (payload) => {
+                    try {
+                        if (
+                            socket.user.role !==
+                            ROLES.DRIVER
+                        ) {
+                            return;
+                        }
+
+                        const {
+                            rideId,
+                            latitude,
+                            longitude,
+                            clientUpdatedAt,
+                        } = payload || {};
+
+                        if (!isValidLocation(latitude, longitude)) {
+                            return;
+                        }
+
+                        const clientTimestamp =
+                            clientUpdatedAt == null
+                                ? null
+                                : Date.parse(clientUpdatedAt);
+
+                        if (
+                            clientUpdatedAt != null &&
+                            !Number.isFinite(clientTimestamp)
+                        ) {
+                            return;
+                        }
+
+                        const now = Date.now();
+
+                        if (
+                            clientTimestamp != null &&
+                            clientTimestamp > now + 30_000
+                        ) {
+                            return;
+                        }
+
+                        const driver =
+                            await Driver.findOne({
+                                user: userId,
+                            });
+
+                        if (!driver) {
+                            logger.warn("driver.location.rejected", {
+                                userId,
+                                reason: "driver_not_found",
+                            });
+                            return;
+                        }
+
+                        const targetRideId =
+                            rideId ||
+                            driver.currentRide?.toString();
+
+                        if (!targetRideId) {
+                            return;
+                        }
+
+                        if (
+                            !driver.currentRide ||
+                            driver.currentRide?.toString() !==
+                            targetRideId.toString()
+                        ) {
+                            return;
+                        }
+
+                        if (
+                            driver.locationUpdatedAt &&
+                            clientTimestamp != null &&
+                            clientTimestamp <=
+                                driver.locationUpdatedAt.getTime()
+                        ) {
+                            return;
+                        }
+
+                        const ride =
+                            await Ride.findById(
+                                targetRideId
+                            ).populate({
+                                path: "guests",
+                                select: "user",
+                            });
+
+                        if (
+                            !ride ||
+                            !TRACKABLE_RIDE_STATUSES.includes(
+                                ride.status
+                            )
+                        ) {
+                            return;
+                        }
+
+                        const updatedAt = new Date(
+                            clientTimestamp ?? now
+                        );
+
+                        driver.currentLocation = {
+                            latitude,
+                            longitude,
+                        };
+                        driver.locationUpdatedAt = updatedAt;
+
+                        await driver.save();
+
+                        const locationPayload = {
+                            rideId: ride._id.toString(),
+                            latitude,
+                            longitude,
+                            updatedAt: updatedAt.toISOString(),
+                        };
+
+                        const guestUserIds = (
+                            ride.guests || []
+                        )
+                            .map((guest) =>
+                                guest?.user?.toString()
+                            )
+                            .filter(Boolean);
+
+                        guestUserIds.forEach(
+                            (guestUserId) => {
+                                io.to(
+                                    `user:${guestUserId}`
+                                ).emit(
+                                    "driver:location",
+                                    locationPayload
+                                );
+                            }
+                        );
+
+                        io.to("admins").emit(
+                            "driver:location",
+                            locationPayload
+                        );
+                    } catch (error) {
+                        logger.error("driver.location.failed", {
+                            userId,
+                            rideId: payload?.rideId,
+                            errorMessage: error?.message,
+                            stack: error?.stack,
+                        });
+                    }
+                }
+            );
+
+            socket.on(
+                "disconnect",
+                (reason) => {
+                    logger.info("socket.disconnected", {
+                        userId,
+                        reason,
+                    });
+                }
+            );
+        }
+    );
 
     return io;
 };
 
 const getIO = () => {
     if (!io) {
-        throw new Error("Socket.IO has not been initialized.");
+        throw new Error(
+            "Socket.IO has not been initialized."
+        );
     }
 
     return io;
