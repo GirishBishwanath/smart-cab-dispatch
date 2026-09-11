@@ -117,6 +117,7 @@ jobs:
       - name: Run integration tests
         env:
           MONGO_URI: mongodb://127.0.0.1:27017/smart_cab_dispatch_test?replicaSet=rs0
+          JWT_SECRET: integration-test-secret
         run: npm run test:integration
 
       - name: Stop MongoDB
