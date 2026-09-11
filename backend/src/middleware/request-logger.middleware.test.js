@@ -4,7 +4,7 @@ import requestLogger from "./request-logger.middleware.js";
 import logger from "../utils/logger.js";
 
 describe("requestLogger", () => {
-    it("adds a request id and logs the completed response", () => {
+    it("adds a request id and logs the completed response without query parameters", () => {
         const next = vi.fn();
         const setHeader = vi.fn();
         const listeners = {};
@@ -17,7 +17,8 @@ describe("requestLogger", () => {
         };
         const request = {
             method: "GET",
-            originalUrl: "/health",
+            path: "/health",
+            originalUrl: "/health?token=secret",
         };
         const loggerSpy = vi
             .spyOn(logger, "info")
@@ -45,5 +46,6 @@ describe("requestLogger", () => {
                 statusCode: 204,
             })
         );
+        expect(loggerSpy.mock.calls[0][1].path).not.toContain("token=");
     });
 });
