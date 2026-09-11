@@ -261,13 +261,38 @@ const initializeSocket = (
                             clientTimestamp ?? now
                         );
 
-                        driver.currentLocation = {
-                            latitude,
-                            longitude,
+                        const locationFilter = {
+                            _id: driver._id,
+                            currentRide: targetRideId,
+                            $or: [
+                                { locationUpdatedAt: null },
+                                { locationUpdatedAt: { $lt: updatedAt } },
+                            ],
                         };
-                        driver.locationUpdatedAt = updatedAt;
 
-                        await driver.save();
+                        const updatedDriver =
+                            await Driver.findOneAndUpdate(
+                                locationFilter,
+                                {
+                                    $set: {
+                                        currentLocation: {
+                                            latitude,
+                                            longitude,
+                                        },
+                                        locationUpdatedAt: updatedAt,
+                                    },
+                                },
+                                { new: true }
+                            );
+
+                        if (!updatedDriver) {
+                            logger.warn("driver.location.rejected", {
+                                userId,
+                                rideId: targetRideId,
+                                reason: "stale_or_changed_driver_state",
+                            });
+                            return;
+                        }
 
                         const locationPayload = {
                             rideId: ride._id.toString(),
