@@ -30,6 +30,10 @@ const populateRide = (rideId) =>
         });
 
 const updateRideStatus = async (rideId, status, userId, userRole) => {
+    if (![RIDE_STATUS.ARRIVED, RIDE_STATUS.PICKED_UP, RIDE_STATUS.COMPLETED].includes(status)) {
+        throw new ApiError(400, "Invalid ride status");
+    }
+
     const session = await mongoose.startSession();
 
     try {
@@ -38,28 +42,23 @@ const updateRideStatus = async (rideId, status, userId, userRole) => {
         let completedDriver = null;
 
         await session.withTransaction(async () => {
+            const transitionFilter =
+                status === RIDE_STATUS.ARRIVED
+                    ? { status: RIDE_STATUS.ASSIGNED, acceptedAt: { $ne: null } }
+                    : status === RIDE_STATUS.PICKED_UP
+                        ? { status: RIDE_STATUS.ARRIVED }
+                        : { status: RIDE_STATUS.PICKED_UP };
+
+            const update =
+                status === RIDE_STATUS.ARRIVED
+                    ? { $set: { status, arrivedAt: new Date() } }
+                    : status === RIDE_STATUS.PICKED_UP
+                        ? { $set: { status, startedAt: new Date() } }
+                        : { $set: { status, completedAt: new Date() } };
+
             const ride = await Ride.findOneAndUpdate(
-                {
-                    _id: rideId,
-                    ...(status === RIDE_STATUS.ARRIVED
-                        ? { status: RIDE_STATUS.ASSIGNED, acceptedAt: { $ne: null } }
-                        : status === RIDE_STATUS.PICKED_UP
-                            ? { status: RIDE_STATUS.ARRIVED }
-                            : status === RIDE_STATUS.COMPLETED
-                                ? { status: RIDE_STATUS.PICKED_UP }
-                                : { _id: rideId }),
-                },
-                {
-                    $set: {
-                        ...(status === RIDE_STATUS.ARRIVED
-                            ? { status: RIDE_STATUS.ARRIVED, arrivedAt: new Date() }
-                            : status === RIDE_STATUS.PICKED_UP
-                                ? { status: RIDE_STATUS.PICKED_UP, startedAt: new Date() }
-                                : status === RIDE_STATUS.COMPLETED
-                                    ? { status: RIDE_STATUS.COMPLETED, completedAt: new Date() }
-                                    : {}),
-                    },
-                },
+                { _id: rideId, ...transitionFilter },
+                update,
                 { new: true, session }
             );
 
@@ -76,30 +75,31 @@ const updateRideStatus = async (rideId, status, userId, userRole) => {
                 if (!ride.driver?.equals(driver._id)) {
                     throw new ApiError(403, "This ride is not assigned to you.");
                 }
-
-                if (
-                    status === RIDE_STATUS.ARRIVED &&
-                    !ride.acceptedAt
-                ) {
-                    throw new ApiError(400, "Accept the ride before marking arrival.");
-                }
             }
 
             if (status === RIDE_STATUS.COMPLETED) {
-                const driver = await Driver.findByIdAndUpdate(
-                    ride.driver,
+                const driver = await Driver.findOneAndUpdate(
+                    {
+                        _id: ride.driver,
+                        currentRide: ride._id,
+                        status: DRIVER_STATUS.ASSIGNED,
+                    },
                     {
                         $set: {
                             status: DRIVER_STATUS.AVAILABLE,
                             currentRide: null,
-                            freeAt: new Date(),
+                            freeAt: ride.completedAt,
                         },
                     },
                     { new: true, session }
                 );
 
+                if (!driver) {
+                    throw new ApiError(409, "Driver state no longer matches this ride");
+                }
+
                 completedDriver = driver;
-                completedDriverUserId = driver?.user ?? null;
+                completedDriverUserId = driver.user;
             }
 
             updatedRideId = ride._id;
@@ -180,20 +180,23 @@ const cancelGuestRide = async (userId, rideId, reason) => {
                 );
             }
 
-            await Driver.findOneAndUpdate(
-                {
-                    _id: ride.driver,
-                    currentRide: ride._id,
-                },
-                {
-                    $set: {
-                        status: DRIVER_STATUS.AVAILABLE,
-                        currentRide: null,
-                        freeAt: ride.cancelledAt,
+            if (ride.driver) {
+                await Driver.findOneAndUpdate(
+                    {
+                        _id: ride.driver,
+                        currentRide: ride._id,
+                        status: DRIVER_STATUS.ASSIGNED,
                     },
-                },
-                { session }
-            );
+                    {
+                        $set: {
+                            status: DRIVER_STATUS.AVAILABLE,
+                            currentRide: null,
+                            freeAt: ride.cancelledAt,
+                        },
+                    },
+                    { session }
+                );
+            }
 
             updatedRideId = ride._id;
         });
@@ -262,10 +265,11 @@ const declineRide = async (userId, rideId, reason) => {
                 );
             }
 
-            await Driver.findOneAndUpdate(
+            const releasedDriver = await Driver.findOneAndUpdate(
                 {
                     _id: driver._id,
                     currentRide: ride._id,
+                    status: DRIVER_STATUS.ASSIGNED,
                 },
                 {
                     $set: {
@@ -274,8 +278,12 @@ const declineRide = async (userId, rideId, reason) => {
                         freeAt: ride.cancelledAt,
                     },
                 },
-                { session }
+                { new: true, session }
             );
+
+            if (!releasedDriver) {
+                throw new ApiError(409, "Driver state no longer matches this ride");
+            }
 
             updatedRideId = ride._id;
         });
@@ -441,32 +449,43 @@ const acknowledgeRide = async (rideId, userId) => {
 
     if (!driver) throw new ApiError(404, "Driver not found");
 
-    const ride = await Ride.findOneAndUpdate(
-        {
-            _id: rideId,
-            driver: driver._id,
-            status: RIDE_STATUS.ASSIGNED,
-            acceptedAt: null,
-        },
-        {
-            $set: { acceptedAt: new Date() },
-        },
-        { new: true }
-    );
+    const session = await mongoose.startSession();
 
-    if (!ride) {
-        const existing = await Ride.findById(rideId);
-        if (!existing) throw new ApiError(404, "Ride not found");
-        if (!existing.driver?.equals(driver._id)) {
-            throw new ApiError(403, "This ride is not assigned to you.");
-        }
-        throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
+    try {
+        let updatedRideId;
+
+        await session.withTransaction(async () => {
+            const ride = await Ride.findOneAndUpdate(
+                {
+                    _id: rideId,
+                    driver: driver._id,
+                    status: RIDE_STATUS.ASSIGNED,
+                    acceptedAt: null,
+                },
+                { $set: { acceptedAt: new Date() } },
+                { new: true, session }
+            );
+
+            if (!ride) {
+                const existing = await Ride.findById(rideId).session(session);
+                if (!existing) throw new ApiError(404, "Ride not found");
+                if (!existing.driver?.equals(driver._id)) {
+                    throw new ApiError(403, "This ride is not assigned to you.");
+                }
+                throw new ApiError(409, "Ride was modified by another request. Please refresh and retry.");
+            }
+
+            updatedRideId = ride._id;
+        });
+
+        const updatedRide = await populateRide(updatedRideId);
+
+        socketService.emitRideAccepted(driver.user, updatedRide);
+
+        return updatedRide;
+    } finally {
+        await session.endSession();
     }
-
-    const updatedRide = await populateRide(rideId);
-    socketService.emitRideAccepted(driver.user, updatedRide);
-
-    return updatedRide;
 };
 
 const getRideRoute = async (rideId, userId, role, from, to) => {

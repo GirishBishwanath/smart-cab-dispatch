@@ -85,6 +85,13 @@ beforeEach(() => {
 });
 
 describe("RideService.updateRideStatus", () => {
+    it("rejects an invalid target status before opening a transaction", async () => {
+        await expect(
+            RideService.updateRideStatus("ride-1", "INVALID", "user-1", ROLES.ADMIN)
+        ).rejects.toMatchObject({ statusCode: 400 });
+        expect(mongoose.startSession).not.toHaveBeenCalled();
+    });
+
     it("rejects an unknown ride", async () => {
         Ride.findOneAndUpdate.mockReturnValue(createQuery(null));
         Ride.findById.mockReturnValue(createQuery(null));
@@ -142,18 +149,32 @@ describe("RideService.updateRideStatus", () => {
         });
     });
 
-    it("atomically completes a ride and releases its driver", async () => {
+    it("rejects a driver that does not own the ride", async () => {
+        const session = createSession();
+        const ride = { _id: "ride-1", status: RIDE_STATUS.ARRIVED, driver: { equals: vi.fn(() => false) } };
+        const driver = { _id: "driver-1" };
+
+        mongoose.startSession.mockResolvedValue(session);
+        Ride.findOneAndUpdate.mockReturnValue(createQuery(ride));
+        Driver.findOne.mockReturnValue(createQuery(driver));
+
+        await expect(
+            RideService.updateRideStatus("ride-1", RIDE_STATUS.PICKED_UP, "user-1", ROLES.DRIVER)
+        ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it("atomically completes a ride and releases only its matching assigned driver", async () => {
         const session = createSession();
         const updatedRide = {
             _id: "ride-1",
             status: RIDE_STATUS.COMPLETED,
             driver: "driver-1",
         };
-        const driver = { _id: "driver-1", user: "user-1" };
+        const driver = { _id: "driver-1", user: "user-1", status: DRIVER_STATUS.AVAILABLE };
 
         mongoose.startSession.mockResolvedValue(session);
         Ride.findOneAndUpdate.mockReturnValue(createQuery(updatedRide));
-        Driver.findByIdAndUpdate.mockReturnValue(createQuery(driver));
+        Driver.findOneAndUpdate.mockReturnValue(createQuery(driver));
         Ride.findById.mockReturnValue(createQuery({
             ...updatedRide,
             driver: { user: "user-1" },
@@ -166,8 +187,12 @@ describe("RideService.updateRideStatus", () => {
             ROLES.ADMIN
         );
 
-        expect(Driver.findByIdAndUpdate).toHaveBeenCalledWith(
-            "driver-1",
+        expect(Driver.findOneAndUpdate).toHaveBeenCalledWith(
+            {
+                _id: "driver-1",
+                currentRide: "ride-1",
+                status: DRIVER_STATUS.ASSIGNED,
+            },
             expect.objectContaining({
                 $set: expect.objectContaining({
                     status: DRIVER_STATUS.AVAILABLE,
@@ -178,6 +203,22 @@ describe("RideService.updateRideStatus", () => {
         );
         expect(socketService.emitRideCompleted).toHaveBeenCalled();
         expect(result).toEqual(expect.objectContaining({ status: RIDE_STATUS.COMPLETED }));
+    });
+
+    it("fails the transaction when the driver state no longer matches the ride", async () => {
+        const session = createSession();
+        const updatedRide = { _id: "ride-1", status: RIDE_STATUS.COMPLETED, driver: "driver-1" };
+
+        mongoose.startSession.mockResolvedValue(session);
+        Ride.findOneAndUpdate.mockReturnValue(createQuery(updatedRide));
+        Driver.findOneAndUpdate.mockReturnValue(createQuery(null));
+
+        await expect(
+            RideService.updateRideStatus("ride-1", RIDE_STATUS.COMPLETED, "user-1", ROLES.ADMIN)
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            message: "Driver state no longer matches this ride",
+        });
     });
 });
 
@@ -200,14 +241,35 @@ describe("RideService.acknowledgeRide", () => {
                 acceptedAt: null,
             },
             { $set: { acceptedAt: expect.any(Date) } },
-            { new: true }
+            expect.objectContaining({ new: true, session: expect.anything() })
         );
         expect(result).toBe(updatedRide);
+    });
+
+    it("returns a conflict when acknowledgement was already won", async () => {
+        const driver = { _id: "driver-1", user: "user-1" };
+        const session = createSession();
+        mongoose.startSession.mockResolvedValue(session);
+        Driver.findOne.mockReturnValue(createQuery(driver));
+        Ride.findOneAndUpdate.mockReturnValue(createQuery(null));
+        Ride.findById.mockReturnValue(createQuery({
+            _id: "ride-1",
+            driver: { equals: vi.fn(() => true) },
+            acceptedAt: new Date(),
+            status: RIDE_STATUS.ASSIGNED,
+        }));
+
+        await expect(
+            RideService.acknowledgeRide("ride-1", "user-1")
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            message: "Ride was modified by another request. Please refresh and retry.",
+        });
     });
 });
 
 describe("RideService.cancelGuestRide", () => {
-    it("atomically cancels an active ride and releases only the matching driver", async () => {
+    it("atomically cancels an active ride and releases only the matching assigned driver", async () => {
         const session = createSession();
         const guest = { _id: "guest-1" };
         const cancelledAt = new Date();
@@ -244,7 +306,11 @@ describe("RideService.cancelGuestRide", () => {
             expect.objectContaining({ new: true, session })
         );
         expect(Driver.findOneAndUpdate).toHaveBeenCalledWith(
-            { _id: "driver-1", currentRide: "ride-1" },
+            {
+                _id: "driver-1",
+                currentRide: "ride-1",
+                status: DRIVER_STATUS.ASSIGNED,
+            },
             expect.objectContaining({
                 $set: expect.objectContaining({
                     status: DRIVER_STATUS.AVAILABLE,
@@ -293,7 +359,11 @@ describe("RideService.declineRide", () => {
             expect.objectContaining({ new: true, session })
         );
         expect(Driver.findOneAndUpdate).toHaveBeenCalledWith(
-            { _id: "driver-1", currentRide: "ride-1" },
+            {
+                _id: "driver-1",
+                currentRide: "ride-1",
+                status: DRIVER_STATUS.ASSIGNED,
+            },
             expect.any(Object),
             expect.objectContaining({ session })
         );
