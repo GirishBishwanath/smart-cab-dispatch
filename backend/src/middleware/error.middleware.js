@@ -1,8 +1,35 @@
+import logger from "../utils/logger.js";
+
 const errorHandler = (err, req, res, next) => {
-    return res.status(err.statusCode || 500).json({
+    const statusCode = err?.statusCode || 500;
+    const isServerError = statusCode >= 500;
+
+    logger.error("http.request.failed", {
+        requestId: req.requestId,
+        method: req.method,
+        path: req.path,
+        statusCode,
+        errorName: err?.name,
+        errorMessage: err?.message,
+        stack: isServerError ? err?.stack : undefined,
+    });
+
+    if (err?.name === "VersionError") {
+        return res.status(409).json({
+            success: false,
+            message: "Ride was modified by another request. Please refresh and retry.",
+        });
+    }
+
+    return res.status(statusCode).json({
         success: false,
-        message: err.message || "Internal Server Error",
-        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+        message: isServerError
+            ? "Internal Server Error"
+            : err?.message || "Request failed",
+        stack:
+            process.env.NODE_ENV === "development"
+                ? err?.stack
+                : undefined,
     });
 };
 

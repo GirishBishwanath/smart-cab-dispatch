@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import RideRequest from "../models/RideRequest.js";
 import Guest from "../models/Guest.js";
 import ApiError from "../utils/ApiError.js";
@@ -73,40 +74,84 @@ const getMyRideRequests = async (userId) => {
     );
 };
 
-const approveRideRequest = async (id) => {
-    const request = await RideRequest.findById(id);
+const withTransaction = async (callback) => {
+    const session = await mongoose.startSession();
 
-    if (!request) throw new ApiError(404, "Ride request not found");
+    try {
+        let result;
 
-    if (request.status !== "PENDING") {
-        throw new ApiError(400, "Ride request already processed");
+        await session.withTransaction(async () => {
+            result = await callback(session);
+        });
+
+        return result;
+    } finally {
+        await session.endSession();
     }
+};
 
-    const ride = await dispatchService.assignDriver(request);
+const findRequestForDecision = async (id, session, message) => {
+    const existing = await RideRequest.findById(id).session(session);
 
-    request.status = "APPROVED";
-    request.approvedAt = new Date();
-    request.ride = ride._id;
+    if (!existing) throw new ApiError(404, "Ride request not found");
+    throw new ApiError(400, message);
+};
 
-    await request.save();
+const approveRideRequest = async (id) => {
+    const ride = await withTransaction(async (session) => {
+        const request = await RideRequest.findOneAndUpdate(
+            { _id: id, status: "PENDING" },
+            {
+                $set: {
+                    status: "APPROVED",
+                    approvedAt: new Date(),
+                },
+            },
+            { new: true, session }
+        );
+
+        if (!request) {
+            await findRequestForDecision(
+                id,
+                session,
+                "Ride request already processed"
+            );
+        }
+
+        const assignedRide = await dispatchService.assignDriver(request, session);
+        request.ride = assignedRide._id;
+        await request.save({ session });
+
+        return assignedRide;
+    });
 
     return ride;
 };
 
 const declineRideRequest = async (id, reason = "") => {
-    const request = await RideRequest.findById(id);
+    const request = await withTransaction(async (session) => {
+        const updated = await RideRequest.findOneAndUpdate(
+            { _id: id, status: "PENDING" },
+            {
+                $set: {
+                    status: "REJECTED",
+                    rejectionReason: reason,
+                    approvedAt: null,
+                },
+            },
+            { new: true, session }
+        );
 
-    if (!request) throw new ApiError(404, "Ride request not found");
+        if (!updated) {
+            await findRequestForDecision(
+                id,
+                session,
+                "Ride request already processed"
+            );
+        }
 
-    if (request.status !== "PENDING") {
-        throw new ApiError(400, "Ride request already processed");
-    }
-
-    request.status = "REJECTED";
-    request.rejectionReason = reason;
-    request.approvedAt = null;
-
-    await request.save();
+        return updated;
+    });
 
     return populateRequest(RideRequest.findById(request._id));
 };
@@ -116,31 +161,43 @@ const cancelMyRideRequest = async (userId, id, reason = "") => {
 
     if (!guest) throw new ApiError(404, "Guest not found");
 
-    const request = await RideRequest.findById(id);
-
-    if (!request) throw new ApiError(404, "Ride request not found");
-
-    if (!request.guest.equals(guest._id)) {
-        throw new ApiError(403, "You cannot cancel this ride request.");
-    }
-
-    if (request.status !== "PENDING") {
-        throw new ApiError(
-            400,
-            "Only pending ride requests can be cancelled."
-        );
-    }
-
     if (!reason.trim()) {
         throw new ApiError(400, "Cancellation reason is required.");
     }
 
-    request.status = "CANCELLED";
-    request.cancellationReason = reason.trim();
-    request.approvedAt = null;
-    request.ride = null;
+    const request = await withTransaction(async (session) => {
+        const updated = await RideRequest.findOneAndUpdate(
+            {
+                _id: id,
+                guest: guest._id,
+                status: "PENDING",
+            },
+            {
+                $set: {
+                    status: "CANCELLED",
+                    cancellationReason: reason.trim(),
+                    approvedAt: null,
+                    ride: null,
+                },
+            },
+            { new: true, session }
+        );
 
-    await request.save();
+        if (!updated) {
+            const existing = await RideRequest.findById(id).session(session);
+
+            if (!existing) throw new ApiError(404, "Ride request not found");
+            if (!existing.guest.equals(guest._id)) {
+                throw new ApiError(403, "You cannot cancel this ride request.");
+            }
+            throw new ApiError(
+                400,
+                "Only pending ride requests can be cancelled."
+            );
+        }
+
+        return updated;
+    });
 
     return populateRequest(RideRequest.findById(request._id));
 };

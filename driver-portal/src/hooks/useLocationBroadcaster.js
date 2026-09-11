@@ -15,6 +15,7 @@ const useLocationBroadcaster = (ride) => {
     const [permission, setPermission] = useState("unknown");
 
     const rideIdRef = useRef(ride?._id);
+    const latestClientTimestampRef = useRef(0);
 
     const isTrackable =
         Boolean(ride?._id) &&
@@ -22,6 +23,10 @@ const useLocationBroadcaster = (ride) => {
 
     useEffect(() => {
         rideIdRef.current = ride?._id;
+    }, [ride?._id]);
+
+    useEffect(() => {
+        latestClientTimestampRef.current = 0;
     }, [ride?._id]);
 
     useEffect(() => {
@@ -51,6 +56,16 @@ const useLocationBroadcaster = (ride) => {
 
                 const { latitude, longitude } =
                     geoPosition.coords;
+                const clientTimestamp = Date.now();
+
+                if (
+                    clientTimestamp <=
+                    latestClientTimestampRef.current
+                ) {
+                    return;
+                }
+
+                latestClientTimestampRef.current = clientTimestamp;
 
                 const nextPosition = {
                     latitude,
@@ -65,6 +80,9 @@ const useLocationBroadcaster = (ride) => {
                     rideId: rideIdRef.current,
                     latitude,
                     longitude,
+                    clientUpdatedAt: new Date(
+                        clientTimestamp
+                    ).toISOString(),
                 });
 
                 console.log(

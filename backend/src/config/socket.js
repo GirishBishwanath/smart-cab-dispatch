@@ -10,6 +10,7 @@ import Ride from "../models/Ride.js";
 import "../models/Guest.js";
 
 import { ROLES, RIDE_STATUS } from "../utils/constants.js";
+import logger from "../utils/logger.js";
 
 let io = null;
 
@@ -19,6 +20,15 @@ const TRACKABLE_RIDE_STATUSES = [
     RIDE_STATUS.PICKED_UP,
 ];
 
+const isValidLocation = (latitude, longitude) =>
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    !(latitude === 0 && longitude === 0);
+
 const initializeSocket = (
     httpServer
 ) => {
@@ -27,7 +37,6 @@ const initializeSocket = (
         {
             cors: {
                 origin: ALLOWED_ORIGINS,
-
                 methods: [
                     "GET",
                     "POST",
@@ -35,7 +44,6 @@ const initializeSocket = (
                     "PUT",
                     "DELETE",
                 ],
-
                 credentials: true,
             },
         }
@@ -51,6 +59,9 @@ const initializeSocket = (
                     socket.handshake.auth?.token;
 
                 if (!token) {
+                    logger.warn("socket.auth.rejected", {
+                        reason: "missing_token",
+                    });
                     return next(
                         new Error(
                             "Authentication required"
@@ -75,6 +86,10 @@ const initializeSocket = (
                     !user ||
                     !user.isActive
                 ) {
+                    logger.warn("socket.auth.rejected", {
+                        reason: "invalid_or_inactive_user",
+                        userId: decoded?.id,
+                    });
                     return next(
                         new Error(
                             "Invalid authentication token"
@@ -84,20 +99,17 @@ const initializeSocket = (
 
                 socket.user = {
                     id: user._id.toString(),
-                    fullName:
-                        user.fullName,
-                    email:
-                        user.email,
-                    role:
-                        user.role,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
                 };
 
                 next();
             } catch (error) {
-                console.error(
-                    "Socket authentication failed:",
-                    error.message
-                );
+                logger.warn("socket.auth.rejected", {
+                    reason: "verification_failed",
+                    errorName: error?.name,
+                });
 
                 next(
                     new Error(
@@ -114,9 +126,10 @@ const initializeSocket = (
             const userId =
                 socket.user.id;
 
-            console.log(
-                `🔌 Socket connected: ${userId}`
-            );
+            logger.info("socket.connected", {
+                userId,
+                role: socket.user.role,
+            });
 
             socket.join(
                 `user:${userId}`
@@ -124,7 +137,7 @@ const initializeSocket = (
 
             if (
                 socket.user.role ===
-                "DRIVER"
+                ROLES.DRIVER
             ) {
                 socket.join(
                     `driver:${userId}`
@@ -161,11 +174,30 @@ const initializeSocket = (
                             rideId,
                             latitude,
                             longitude,
+                            clientUpdatedAt,
                         } = payload || {};
 
+                        if (!isValidLocation(latitude, longitude)) {
+                            return;
+                        }
+
+                        const clientTimestamp =
+                            clientUpdatedAt == null
+                                ? null
+                                : Date.parse(clientUpdatedAt);
+
                         if (
-                            typeof latitude !== "number" ||
-                            typeof longitude !== "number"
+                            clientUpdatedAt != null &&
+                            !Number.isFinite(clientTimestamp)
+                        ) {
+                            return;
+                        }
+
+                        const now = Date.now();
+
+                        if (
+                            clientTimestamp != null &&
+                            clientTimestamp > now + 30_000
                         ) {
                             return;
                         }
@@ -176,15 +208,12 @@ const initializeSocket = (
                             });
 
                         if (!driver) {
+                            logger.warn("driver.location.rejected", {
+                                userId,
+                                reason: "driver_not_found",
+                            });
                             return;
                         }
-
-                        driver.currentLocation = {
-                            latitude,
-                            longitude,
-                        };
-
-                        await driver.save();
 
                         const targetRideId =
                             rideId ||
@@ -195,8 +224,18 @@ const initializeSocket = (
                         }
 
                         if (
+                            !driver.currentRide ||
                             driver.currentRide?.toString() !==
                             targetRideId.toString()
+                        ) {
+                            return;
+                        }
+
+                        if (
+                            driver.locationUpdatedAt &&
+                            clientTimestamp != null &&
+                            clientTimestamp <=
+                                driver.locationUpdatedAt.getTime()
                         ) {
                             return;
                         }
@@ -218,11 +257,48 @@ const initializeSocket = (
                             return;
                         }
 
+                        const updatedAt = new Date(
+                            clientTimestamp ?? now
+                        );
+
+                        const locationFilter = {
+                            _id: driver._id,
+                            currentRide: targetRideId,
+                            $or: [
+                                { locationUpdatedAt: null },
+                                { locationUpdatedAt: { $lt: updatedAt } },
+                            ],
+                        };
+
+                        const updatedDriver =
+                            await Driver.findOneAndUpdate(
+                                locationFilter,
+                                {
+                                    $set: {
+                                        currentLocation: {
+                                            latitude,
+                                            longitude,
+                                        },
+                                        locationUpdatedAt: updatedAt,
+                                    },
+                                },
+                                { new: true }
+                            );
+
+                        if (!updatedDriver) {
+                            logger.warn("driver.location.rejected", {
+                                userId,
+                                rideId: targetRideId,
+                                reason: "stale_or_changed_driver_state",
+                            });
+                            return;
+                        }
+
                         const locationPayload = {
                             rideId: ride._id.toString(),
                             latitude,
                             longitude,
-                            updatedAt: new Date().toISOString(),
+                            updatedAt: updatedAt.toISOString(),
                         };
 
                         const guestUserIds = (
@@ -249,10 +325,12 @@ const initializeSocket = (
                             locationPayload
                         );
                     } catch (error) {
-                        console.error(
-                            "Failed to process driver:location:",
-                            error.message
-                        );
+                        logger.error("driver.location.failed", {
+                            userId,
+                            rideId: payload?.rideId,
+                            errorMessage: error?.message,
+                            stack: error?.stack,
+                        });
                     }
                 }
             );
@@ -260,9 +338,10 @@ const initializeSocket = (
             socket.on(
                 "disconnect",
                 (reason) => {
-                    console.log(
-                        `🔌 Socket disconnected: ${userId} (${reason})`
-                    );
+                    logger.info("socket.disconnected", {
+                        userId,
+                        reason,
+                    });
                 }
             );
         }
@@ -281,11 +360,25 @@ const getIO = () => {
     return io;
 };
 
+const closeSocket = async () => {
+    if (!io) return;
+
+    const currentIO = io;
+    io = null;
+
+    await new Promise((resolve) => {
+        currentIO.close(resolve);
+    });
+};
+
 const emitToUser = (userId, event, payload = {}) => {
     const io = getIO();
 
     if (!userId) {
-        console.warn(`⚠️ Cannot emit "${event}": userId is missing.`);
+        logger.warn("socket.emit.skipped", {
+            event,
+            reason: "missing_user_id",
+        });
         return;
     }
 
@@ -295,5 +388,6 @@ const emitToUser = (userId, event, payload = {}) => {
 export {
     initializeSocket,
     getIO,
+    closeSocket,
     emitToUser,
 };
