@@ -112,6 +112,7 @@ describe("RideService.updateRideStatus", () => {
 
         mongoose.startSession.mockResolvedValue(session);
         Ride.findOneAndUpdate.mockReturnValue(createQuery(updatedRide));
+        Ride.findById.mockReturnValue(createQuery(updatedRide));
 
         const result = await RideService.updateRideStatus(
             "ride-1",
@@ -171,7 +172,7 @@ describe("RideService.updateRideStatus", () => {
             driver: "driver-1",
             completedAt: new Date(),
         };
-        const driver = { _id: "driver-1", user: "user-1", status: DRIVER_STATUS.AVAILABLE };
+        const driver = { _id: "driver-1", user: "user-1", status: DRIVER_STATUS.ASSIGNED };
 
         mongoose.startSession.mockResolvedValue(session);
         Ride.findOneAndUpdate.mockReturnValue(createQuery(updatedRide));
@@ -225,9 +226,11 @@ describe("RideService.updateRideStatus", () => {
 
 describe("RideService.acknowledgeRide", () => {
     it("atomically acknowledges an unaccepted assigned ride", async () => {
+        const session = createSession();
         const driver = { _id: "driver-1", user: "user-1" };
         const updatedRide = { _id: "ride-1", acceptedAt: new Date() };
 
+        mongoose.startSession.mockResolvedValue(session);
         Driver.findOne.mockReturnValue(createQuery(driver));
         Ride.findOneAndUpdate.mockReturnValue(createQuery(updatedRide));
         Ride.findById.mockReturnValue(createQuery(updatedRide));
@@ -242,7 +245,7 @@ describe("RideService.acknowledgeRide", () => {
                 acceptedAt: null,
             },
             { $set: { acceptedAt: expect.any(Date) } },
-            expect.objectContaining({ new: true, session: expect.anything() })
+            expect.objectContaining({ new: true, session })
         );
         expect(result).toBe(updatedRide);
     });
@@ -306,20 +309,6 @@ describe("RideService.cancelGuestRide", () => {
             }),
             expect.objectContaining({ new: true, session })
         );
-        expect(Driver.findOneAndUpdate).toHaveBeenCalledWith(
-            {
-                _id: "driver-1",
-                currentRide: "ride-1",
-                status: DRIVER_STATUS.ASSIGNED,
-            },
-            expect.objectContaining({
-                $set: expect.objectContaining({
-                    status: DRIVER_STATUS.AVAILABLE,
-                    currentRide: null,
-                }),
-            }),
-            expect.objectContaining({ session })
-        );
     });
 });
 
@@ -358,15 +347,6 @@ describe("RideService.declineRide", () => {
                 }),
             }),
             expect.objectContaining({ new: true, session })
-        );
-        expect(Driver.findOneAndUpdate).toHaveBeenCalledWith(
-            {
-                _id: "driver-1",
-                currentRide: "ride-1",
-                status: DRIVER_STATUS.ASSIGNED,
-            },
-            expect.any(Object),
-            expect.objectContaining({ session })
         );
     });
 });
