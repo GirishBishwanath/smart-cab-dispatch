@@ -9,6 +9,7 @@ const ServerMock = vi.fn(() => ioMock);
 const jwtVerify = vi.fn();
 const userFindById = vi.fn();
 const driverFindOne = vi.fn();
+const driverFindOneAndUpdate = vi.fn();
 const rideFindById = vi.fn();
 
 vi.mock("socket.io", () => ({
@@ -30,6 +31,7 @@ vi.mock("../models/User.js", () => ({
 vi.mock("../models/Driver.js", () => ({
     default: {
         findOne: driverFindOne,
+        findOneAndUpdate: driverFindOneAndUpdate,
     },
 }));
 
@@ -179,15 +181,11 @@ describe("socket connection handlers", () => {
         });
 
         expect(driverFindOne).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("rejects invalid or out-of-range coordinates without persisting them", async () => {
         initializeSocket({});
-        const driver = {
-            currentRide: "ride-1",
-            save: vi.fn().mockResolvedValue(undefined),
-        };
-        driverFindOne.mockResolvedValue(driver);
         const socket = {
             user: { id: "driver-1", role: "DRIVER" },
             join: vi.fn(),
@@ -201,15 +199,12 @@ describe("socket connection handlers", () => {
         await locationHandler({ latitude: 0, longitude: 0 });
 
         expect(driverFindOne).not.toHaveBeenCalled();
-        expect(driver.save).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("does not persist a location for a mismatched or missing active ride", async () => {
         initializeSocket({});
-        const driver = {
-            currentRide: "ride-1",
-            save: vi.fn().mockResolvedValue(undefined),
-        };
+        const driver = { currentRide: "ride-1" };
         driverFindOne.mockResolvedValue(driver);
         const socket = {
             user: { id: "driver-1", role: "DRIVER" },
@@ -225,15 +220,16 @@ describe("socket connection handlers", () => {
             longitude: 77.59,
         });
 
-        expect(driver.save).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
         expect(rideFindById).not.toHaveBeenCalled();
     });
 
     it("does not persist a location after the ride becomes non-trackable", async () => {
         initializeSocket({});
         const driver = {
+            _id: "driver-doc-1",
             currentRide: "ride-1",
-            save: vi.fn().mockResolvedValue(undefined),
+            locationUpdatedAt: null,
         };
         driverFindOne.mockResolvedValue(driver);
         rideFindById.mockReturnValue(createRideQuery({
@@ -254,7 +250,7 @@ describe("socket connection handlers", () => {
             longitude: 77.59,
         });
 
-        expect(driver.save).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("rejects a client timestamp that is in the future", async () => {
@@ -262,7 +258,6 @@ describe("socket connection handlers", () => {
         const driver = {
             currentRide: "ride-1",
             locationUpdatedAt: null,
-            save: vi.fn().mockResolvedValue(undefined),
         };
         driverFindOne.mockResolvedValue(driver);
         rideFindById.mockReturnValue(createRideQuery({
@@ -270,7 +265,6 @@ describe("socket connection handlers", () => {
             status: "ASSIGNED",
             guests: [],
         }));
-
         const socket = {
             user: { id: "driver-1", role: "DRIVER" },
             join: vi.fn(),
@@ -286,7 +280,7 @@ describe("socket connection handlers", () => {
             clientUpdatedAt: future,
         });
 
-        expect(driver.save).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("ignores an older client timestamp than the persisted driver location", async () => {
@@ -295,7 +289,6 @@ describe("socket connection handlers", () => {
         const driver = {
             currentRide: "ride-1",
             locationUpdatedAt: olderTimestamp,
-            save: vi.fn().mockResolvedValue(undefined),
         };
         driverFindOne.mockResolvedValue(driver);
         const socket = {
@@ -314,22 +307,26 @@ describe("socket connection handlers", () => {
         });
 
         expect(rideFindById).not.toHaveBeenCalled();
-        expect(driver.save).not.toHaveBeenCalled();
+        expect(driverFindOneAndUpdate).not.toHaveBeenCalled();
     });
 
-    it("persists a valid location and broadcasts it with a server-derived timestamp", async () => {
+    it("atomically persists a valid location before broadcasting it", async () => {
         initializeSocket({});
         const emit = vi.fn();
         const to = vi.fn(() => ({ emit }));
         ioMock.to = to;
 
         const driver = {
+            _id: "driver-doc-1",
             currentRide: "ride-1",
-            currentLocation: null,
             locationUpdatedAt: null,
-            save: vi.fn().mockResolvedValue(undefined),
         };
         driverFindOne.mockResolvedValue(driver);
+        driverFindOneAndUpdate.mockResolvedValue({
+            ...driver,
+            currentLocation: { latitude: 12.97, longitude: 77.59 },
+            locationUpdatedAt: new Date(),
+        });
         rideFindById.mockReturnValue(createRideQuery({
             _id: "ride-1",
             status: "ASSIGNED",
@@ -344,18 +341,32 @@ describe("socket connection handlers", () => {
         };
 
         const locationHandler = getLocationHandler(socket);
-
         const clientUpdatedAt = new Date(Date.now() - 1_000).toISOString();
+
         await locationHandler({
             latitude: 12.97,
             longitude: 77.59,
             clientUpdatedAt,
         });
 
-        expect(driver.currentLocation).toEqual({ latitude: 12.97, longitude: 77.59 });
-        expect(driver.locationUpdatedAt).toEqual(new Date(clientUpdatedAt));
-        expect(driver.save).toHaveBeenCalledTimes(1);
-        expect(rideFindById).toHaveBeenCalledWith("ride-1");
+        expect(driverFindOneAndUpdate).toHaveBeenCalledTimes(1);
+        expect(driverFindOneAndUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                _id: "driver-doc-1",
+                currentRide: "ride-1",
+                $or: [
+                    { locationUpdatedAt: null },
+                    { locationUpdatedAt: { $lt: new Date(clientUpdatedAt) } },
+                ],
+            }),
+            {
+                $set: {
+                    currentLocation: { latitude: 12.97, longitude: 77.59 },
+                    locationUpdatedAt: new Date(clientUpdatedAt),
+                },
+            },
+            { new: true }
+        );
         expect(to).toHaveBeenCalledWith("user:guest-1");
         expect(to).toHaveBeenCalledWith("user:guest-2");
         expect(to).toHaveBeenCalledWith("admins");
@@ -366,6 +377,42 @@ describe("socket connection handlers", () => {
             longitude: 77.59,
             updatedAt: clientUpdatedAt,
         }));
+    });
+
+    it("does not broadcast when the atomic location update loses a race", async () => {
+        initializeSocket({});
+        const emit = vi.fn();
+        ioMock.to = vi.fn(() => ({ emit }));
+
+        driverFindOne.mockResolvedValue({
+            _id: "driver-doc-1",
+            currentRide: "ride-1",
+            locationUpdatedAt: null,
+        });
+        driverFindOneAndUpdate.mockResolvedValue(null);
+        rideFindById.mockReturnValue(createRideQuery({
+            _id: "ride-1",
+            status: "ASSIGNED",
+            guests: [{ user: "guest-1" }],
+        }));
+
+        const socket = {
+            user: { id: "driver-1", role: "DRIVER" },
+            join: vi.fn(),
+            emit: vi.fn(),
+            on: vi.fn(),
+        };
+        const locationHandler = getLocationHandler(socket);
+
+        await locationHandler({
+            latitude: 12.97,
+            longitude: 77.59,
+            clientUpdatedAt: new Date(Date.now() - 1_000).toISOString(),
+        });
+
+        expect(driverFindOneAndUpdate).toHaveBeenCalledTimes(1);
+        expect(ioMock.to).not.toHaveBeenCalled();
+        expect(emit).not.toHaveBeenCalled();
     });
 });
 
