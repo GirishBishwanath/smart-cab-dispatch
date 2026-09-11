@@ -56,16 +56,16 @@ const useLocationBroadcaster = (ride) => {
 
                 const { latitude, longitude } =
                     geoPosition.coords;
-                const clientUpdatedAt = Date.now();
+                const clientTimestamp = Date.now();
 
                 if (
-                    clientUpdatedAt <=
+                    clientTimestamp <=
                     latestClientTimestampRef.current
                 ) {
                     return;
                 }
 
-                latestClientTimestampRef.current = clientUpdatedAt;
+                latestClientTimestampRef.current = clientTimestamp;
 
                 const nextPosition = {
                     latitude,
@@ -80,7 +80,9 @@ const useLocationBroadcaster = (ride) => {
                     rideId: rideIdRef.current,
                     latitude,
                     longitude,
-                    clientUpdatedAt,
+                    clientUpdatedAt: new Date(
+                        clientTimestamp
+                    ).toISOString(),
                 });
 
                 console.log(
