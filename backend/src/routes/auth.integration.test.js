@@ -63,6 +63,7 @@ describe("authentication HTTP integration", () => {
         const body = await response.json();
 
         expect(response.status).toBe(200);
+        expect(response.headers.get("X-Request-ID")).toEqual(expect.any(String));
         expect(body.success).toBe(true);
         expect(body.data.token).toEqual(expect.any(String));
         expect(body.data.user.email).toBe("http-integration@example.com");
@@ -129,6 +130,30 @@ describe("authentication HTTP integration", () => {
         expect(body).toEqual({
             success: false,
             message: "Invalid authentication token",
+        });
+    });
+
+    it("rejects a guest bearer token on an admin-only endpoint", async () => {
+        const login = await fetch(`${baseUrl}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: "http-integration@example.com",
+                password: "strong-password",
+            }),
+        });
+        const loginBody = await login.json();
+        const token = loginBody.data.token;
+
+        const response = await fetch(`${baseUrl}/api/admin/dashboard`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const body = await response.json();
+
+        expect(response.status).toBe(403);
+        expect(body).toEqual({
+            success: false,
+            message: "Access denied",
         });
     });
 });
