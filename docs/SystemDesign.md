@@ -89,9 +89,9 @@ The configurable `OSRM_ETA_FACTOR` allows the application to make the raw routin
 
 ## Data consistency and race conditions
 
-The current application performs driver selection and assignment within the same request flow. At small scale this is straightforward to reason about, but concurrent approvals could potentially attempt to select the same driver before each request has persisted its assignment.
+Driver selection and ride assignment are guarded by MongoDB transactions and conditional driver updates. The assignment path revalidates driver/vehicle eligibility inside the transaction, reserves only an `AVAILABLE` driver with no current ride, creates the Ride, and conditionally links that Ride back to the driver. Ride request decisions and ride lifecycle mutations use the same transactional/conditional approach where multiple documents must change together.
 
-A production-scale implementation should address this explicitly with an atomic reservation/conditional update, transaction strategy, or serialized dispatch worker. Adding a queue alone is not a substitute for correct database-level state transitions.
+MongoDB therefore remains the source of truth for durable assignment and lifecycle state. Redis or a queue is not used as a substitute for database consistency.
 
 ## Asynchronous work
 
@@ -109,6 +109,29 @@ Queue
 ```
 
 Redis + BullMQ would be a lightweight fit for background jobs in this Node.js stack. Kafka is deliberately not required today: a single backend with no independent event consumers does not justify the operational complexity of a distributed event log.
+
+## Observability
+
+The backend uses structured JSON logs written to standard output/error so Render or another runtime can collect them without requiring an application-specific logging service.
+
+The current logging layer provides:
+
+- ISO-8601 timestamps
+- log levels
+- stable event names
+- request correlation IDs for HTTP requests
+- request method/path/status/duration
+- startup and MongoDB connection events
+- Socket.IO authentication, connection, disconnection, and location-processing events
+- dispatch success, rejection, duplicate-assignment recovery, and route-fallback events
+- routing failures
+- production-safe HTTP error diagnostics
+
+The logger redacts common secret-bearing fields such as authorization headers, passwords, tokens, cookies, and client secrets. Internal stack traces are logged server-side for failures but are not returned to production clients.
+
+The request middleware exposes the correlation identifier as `X-Request-ID`, allowing an operator to connect a client-visible failed request with the corresponding backend log entry.
+
+This is intentionally a lightweight observability layer. A hosted log/metrics/APM product is not required at the current scale; it can be added later when log retention, dashboards, alerting, distributed tracing, or service-level metrics justify the operational dependency.
 
 ## Caching
 
@@ -143,7 +166,7 @@ PostgreSQL should not replace MongoDB merely to add another technology. It becom
 
 ### OSRM unavailable
 
-Route calculation can fail independently of ride creation. The application therefore treats route calculation as a separate operation and can fall back to persisted ride metrics where available. A larger deployment could add retry/backoff or a secondary routing provider.
+Route calculation can fail independently of ride creation. The dispatch path records a route fallback and persists zero route metrics rather than failing the entire assignment. Other route reads surface routing failures through the service boundary and structured logs.
 
 ### Socket disconnected
 
@@ -151,18 +174,19 @@ REST remains the source for durable ride state. A reconnecting client can fetch 
 
 ### Driver location stale
 
-A production version should track the timestamp of the last accepted location and display stale-location state rather than implying that an old coordinate is current.
+The backend persists `locationUpdatedAt` and rejects stale or future-dated client updates. Clients can therefore distinguish the last accepted coordinate from a fresh location instead of treating every received coordinate as current.
 
 ## Scale evolution
 
 | Concern | Current | Appropriate next step |
 |---|---|---|
 | Driver matching | Haversine-ranked + capacity checks | MongoDB geospatial index |
-| Dispatch execution | Synchronous | Queue/worker when volume justifies it |
+| Dispatch execution | Synchronous + transactional reservation | Queue/worker when volume justifies it |
 | Socket.IO | Single instance | Redis adapter for multiple instances |
 | Availability reads | MongoDB | Redis only when measured useful |
 | Background work | Inline | BullMQ/worker for asynchronous tasks |
 | Domain events | Service-driven + socket events | Internal event bus, then distributed broker if needed |
+| Observability | Structured stdout/stderr + request IDs | Central log/APM platform when justified |
 | Analytics | Not implemented | Dedicated reporting model/store when required |
 | Routing | OSRM | Traffic-aware provider/fallback at higher product requirements |
 
