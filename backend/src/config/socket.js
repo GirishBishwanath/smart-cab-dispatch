@@ -188,7 +188,7 @@ const initializeSocket = (
 
                         if (
                             clientTimestamp != null &&
-                            clientTimestamp > now
+                            clientTimestamp > now + 30_000
                         ) {
                             return;
                         }
@@ -244,16 +244,9 @@ const initializeSocket = (
                             return;
                         }
 
-                        const updatedAt = new Date(now);
-
-                        if (
-                            driver.locationUpdatedAt &&
-                            clientTimestamp == null &&
-                            driver.locationUpdatedAt.getTime() >
-                                updatedAt.getTime()
-                        ) {
-                            return;
-                        }
+                        const updatedAt = new Date(
+                            clientTimestamp ?? now
+                        );
 
                         driver.currentLocation = {
                             latitude,
