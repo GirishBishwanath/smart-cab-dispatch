@@ -36,7 +36,6 @@ const initializeSocket = (
         {
             cors: {
                 origin: ALLOWED_ORIGINS,
-
                 methods: [
                     "GET",
                     "POST",
@@ -44,7 +43,6 @@ const initializeSocket = (
                     "PUT",
                     "DELETE",
                 ],
-
                 credentials: true,
             },
         }
@@ -93,12 +91,9 @@ const initializeSocket = (
 
                 socket.user = {
                     id: user._id.toString(),
-                    fullName:
-                        user.fullName,
-                    email:
-                        user.email,
-                    role:
-                        user.role,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
                 };
 
                 next();
@@ -133,7 +128,7 @@ const initializeSocket = (
 
             if (
                 socket.user.role ===
-                "DRIVER"
+                ROLES.DRIVER
             ) {
                 socket.join(
                     `driver:${userId}`
@@ -170,9 +165,31 @@ const initializeSocket = (
                             rideId,
                             latitude,
                             longitude,
+                            clientUpdatedAt,
                         } = payload || {};
 
                         if (!isValidLocation(latitude, longitude)) {
+                            return;
+                        }
+
+                        const clientTimestamp =
+                            clientUpdatedAt == null
+                                ? null
+                                : Date.parse(clientUpdatedAt);
+
+                        if (
+                            clientUpdatedAt != null &&
+                            !Number.isFinite(clientTimestamp)
+                        ) {
+                            return;
+                        }
+
+                        const now = Date.now();
+
+                        if (
+                            clientTimestamp != null &&
+                            clientTimestamp > now
+                        ) {
                             return;
                         }
 
@@ -201,6 +218,15 @@ const initializeSocket = (
                             return;
                         }
 
+                        if (
+                            driver.locationUpdatedAt &&
+                            clientTimestamp != null &&
+                            clientTimestamp <=
+                                driver.locationUpdatedAt.getTime()
+                        ) {
+                            return;
+                        }
+
                         const ride =
                             await Ride.findById(
                                 targetRideId
@@ -218,7 +244,16 @@ const initializeSocket = (
                             return;
                         }
 
-                        const updatedAt = new Date();
+                        const updatedAt = new Date(now);
+
+                        if (
+                            driver.locationUpdatedAt &&
+                            clientTimestamp == null &&
+                            driver.locationUpdatedAt.getTime() >
+                                updatedAt.getTime()
+                        ) {
+                            return;
+                        }
 
                         driver.currentLocation = {
                             latitude,
