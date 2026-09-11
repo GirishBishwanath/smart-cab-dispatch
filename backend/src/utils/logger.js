@@ -1,20 +1,25 @@
+const normalizeKey = (key) =>
+    key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+
 const SENSITIVE_KEYS = new Set([
     "authorization",
     "cookie",
     "password",
     "token",
-    "accessToken",
-    "refreshToken",
-    "clientSecret",
+    "access_token",
+    "access-token",
+    "refresh_token",
+    "refresh-token",
+    "client_secret",
+    "client-secret",
     "secret",
 ]);
 
-const sanitize = (value, seen = new WeakSet()) => {
+const sanitize = (value, ancestors = new WeakSet()) => {
     if (value == null) return value;
     if (typeof value !== "object") return value;
 
-    if (seen.has(value)) return "[Circular]";
-    seen.add(value);
+    if (ancestors.has(value)) return "[Circular]";
 
     if (value instanceof Error) {
         return {
@@ -24,14 +29,17 @@ const sanitize = (value, seen = new WeakSet()) => {
         };
     }
 
+    const nextAncestors = new WeakSet(ancestors);
+    nextAncestors.add(value);
+
     if (Array.isArray(value)) {
-        return value.map((item) => sanitize(item, seen));
+        return value.map((item) => sanitize(item, nextAncestors));
     }
 
     return Object.fromEntries(
         Object.entries(value)
-            .filter(([key]) => !SENSITIVE_KEYS.has(key))
-            .map(([key, entry]) => [key, sanitize(entry, seen)])
+            .filter(([key]) => !SENSITIVE_KEYS.has(normalizeKey(key)))
+            .map(([key, entry]) => [key, sanitize(entry, nextAncestors)])
     );
 };
 

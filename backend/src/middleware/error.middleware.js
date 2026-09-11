@@ -7,7 +7,7 @@ const errorHandler = (err, req, res, next) => {
     logger.error("http.request.failed", {
         requestId: req.requestId,
         method: req.method,
-        path: req.originalUrl,
+        path: req.path,
         statusCode,
         errorName: err?.name,
         errorMessage: err?.message,
