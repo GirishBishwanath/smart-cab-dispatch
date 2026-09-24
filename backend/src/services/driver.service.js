@@ -29,7 +29,9 @@ const createDriver = async (data) => {
             400,
             "Password must be at least 8 characters."
         );
-    }\n\n    const existingUser = await User.findOne({ email });
+    }
+
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
         throw new ApiError(
