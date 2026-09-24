@@ -58,10 +58,10 @@ class AuthService {
             throw new ApiError(400, "Name, email and password are required.");
         }
 
-        if (password.length < 6) {
+        if (password.length < 8) {
             throw new ApiError(
                 400,
-                "Password must be at least 6 characters."
+                "Password must be at least 8 characters."
             );
         }
 
