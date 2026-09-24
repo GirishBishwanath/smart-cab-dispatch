@@ -55,6 +55,17 @@ beforeEach(() => {
 });
 
 describe("DriverService.createDriver", () => {
+    it("rejects short passwords", async () => {
+        await expect(
+            DriverService.createDriver({
+                fullName: "Driver",
+                email: "driver@example.com",
+                password: "1234567",
+            })
+        ).rejects.toMatchObject({ statusCode: 400 });
+        expect(User.findOne).not.toHaveBeenCalled();
+    });
+
     it("rejects an existing driver email", async () => {
         User.findOne.mockResolvedValue({ _id: "user-1" });
 
@@ -62,7 +73,7 @@ describe("DriverService.createDriver", () => {
             DriverService.createDriver({
                 fullName: "Driver",
                 email: "driver@example.com",
-                password: "secret",
+                password: "secret123",
             })
         ).rejects.toMatchObject({ statusCode: 400 });
         expect(User.create).not.toHaveBeenCalled();
@@ -81,7 +92,7 @@ describe("DriverService.createDriver", () => {
         const result = await DriverService.createDriver({
             fullName: "Driver",
             email: "driver@example.com",
-            password: "secret",
+            password: "secret123",
             phone: "123",
             vehicleNumber: "KA01AB1234",
             model: "Sedan",
