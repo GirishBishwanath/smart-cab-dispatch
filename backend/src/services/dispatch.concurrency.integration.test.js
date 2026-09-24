@@ -23,6 +23,18 @@ describe("dispatch concurrency integration", () => {
     beforeAll(async () => {
         await mongoose.connect(MONGO_URI);
 
+        // The integration database can survive a previous interrupted test run.
+        // Clear data before creating unique indexes so stale duplicate documents
+        // cannot make index initialization fail before beforeEach() can run.
+        await Promise.all([
+            RideRequest.deleteMany({}),
+            Ride.deleteMany({}),
+            Vehicle.deleteMany({}),
+            Driver.deleteMany({}),
+            Guest.deleteMany({}),
+            User.deleteMany({}),
+        ]);
+
         await Promise.all([
             User.init(),
             Guest.init(),
