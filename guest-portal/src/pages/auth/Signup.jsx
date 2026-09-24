@@ -19,7 +19,7 @@ const validate = (form) => {
     if (!form.phone.trim()) errors.phone = "Phone number is required.";
 
     if (!form.password) errors.password = "Password is required.";
-    else if (form.password.length < 6) errors.password = "Use at least 6 characters.";
+    else if (form.password.length < 8) errors.password = "Use at least 8 characters.";
 
     if (form.password !== form.confirmPassword) errors.confirmPassword = "Passwords do not match.";
 
