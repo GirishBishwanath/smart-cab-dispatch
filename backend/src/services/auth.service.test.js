@@ -135,7 +135,7 @@ describe("AuthService signup", () => {
 describe("AuthService.googleLogin", () => {
     it("rejects missing Google credentials", async () => {
         await expect(AuthService.googleLogin("")).rejects.toMatchObject({
-            statusCode: 500,
+            statusCode: 400,
         });
     });
 });
