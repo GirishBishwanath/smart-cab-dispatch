@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "vitest": "^3.2.4"
   }
 }

@@ -15,6 +15,11 @@ const driverSchema = new mongoose.Schema(
             longitude: Number,
         },
 
+        locationUpdatedAt: {
+            type: Date,
+            default: null,
+        },
+
         status: {
             type: String,
             enum: Object.values(DRIVER_STATUS),

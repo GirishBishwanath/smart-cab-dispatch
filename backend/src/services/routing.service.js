@@ -1,3 +1,5 @@
+import logger from "../utils/logger.js";
+
 const OSRM_BASE_URL =
     process.env.OSRM_BASE_URL || "https://router.project-osrm.org";
 
@@ -16,6 +18,9 @@ const isValidCoordinate = (point) => {
 
 const getDrivingRoute = async (from, to) => {
     if (!isValidCoordinate(from) || !isValidCoordinate(to)) {
+        logger.warn("routing.request.rejected", {
+            reason: "invalid_coordinates",
+        });
         throw new Error("Invalid routing coordinates");
     }
 
@@ -74,6 +79,12 @@ const getDrivingRoute = async (from, to) => {
             durationMinutes,
             geometry,
         };
+    } catch (error) {
+        logger.error("routing.request.failed", {
+            errorName: error?.name,
+            errorMessage: error?.message,
+        });
+        throw error;
     } finally {
         clearTimeout(timeout);
     }

@@ -9,10 +9,14 @@ import guestRoutes from "./routes/guest.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import rideRequestRoutes from "./routes/rideRequest.routes.js";
 import rideRoutes from "./routes/ride.routes.js";
+import requestLogger from "./middleware/request-logger.middleware.js";
+import securityHeaders from "./middleware/security-headers.middleware.js";
 import errorHandler from "./middleware/error.middleware.js";
 
 const app = express();
 
+app.disable("x-powered-by");
+app.use(securityHeaders);
 app.use(
     cors({
         origin: (origin, callback) => {
@@ -25,7 +29,8 @@ app.use(
         credentials: true,
     })
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
+app.use(requestLogger);
 
 app.get("/", (req, res) =>
     res.json({
