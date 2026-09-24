@@ -24,7 +24,7 @@ const createDriver = async (data) => {
         luggageCapacity,
     } = data;
 
-    const existingUser = await User.findOne({ email });
+    if (!password || password.length < 8) {\n        throw new ApiError(\n            400,\n            "Password must be at least 8 characters."\n        );\n    }\n\n    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
         throw new ApiError(
