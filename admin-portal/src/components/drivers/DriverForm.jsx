@@ -122,7 +122,7 @@ const DriverForm = ({
                             <span className="mt-1.5 block text-[11px] text-slate-400">
                                 Minimum 8 characters.
                             </span>
-                        )
+                        )}
                     </Field>
                 </div>
             </section>
