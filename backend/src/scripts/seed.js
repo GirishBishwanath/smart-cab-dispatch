@@ -6,8 +6,6 @@ import { seedGuests } from "./guests.seed.js";
 import { seedRides } from "./rides.seed.js";
 
 export const seedDatabase = async () => {
-  await connectDB();
-
   console.log("🌱 Starting Database Seed");
 
   await seedUsers();
@@ -20,6 +18,7 @@ export const seedDatabase = async () => {
 
 const run = async () => {
   try {
+    await connectDB();
     await seedDatabase();
     process.exit(0);
   } catch (error) {
