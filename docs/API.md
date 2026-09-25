@@ -45,6 +45,8 @@ role receives `403 Access denied`.
 
 ## Auth — `/api/auth`
 
+Local password signup requires a minimum of 8 characters. Passwords are hashed before persistence.
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/login` | — | Email/password login. Body: `{ email, password }` |
@@ -163,8 +165,6 @@ per authenticated user's private room:
 | `ride:completed` | `{ ride }` | A ride is marked completed |
 | `driver:status` | `{ driver }` | A driver's own status changes |
 
-## Note on `/api/vehicles`
+## Vehicle management
 
-A `vehicle.routes.js` file exists in the repo but is currently empty
-and not mounted in `app.js` — vehicles are created and managed as a
-side effect of driver creation, not through a standalone endpoint yet.
+Vehicles do not have a standalone REST route. Vehicle records are created and managed as part of Admin driver operations, including driver creation and driver updates.

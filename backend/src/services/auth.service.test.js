@@ -104,7 +104,7 @@ describe("AuthService login", () => {
 describe("AuthService signup", () => {
     it("validates required fields", async () => {
         await expect(
-            AuthService.signup({ email: "user@example.com", password: "secret" })
+            AuthService.signup({ email: "user@example.com", password: "secret123" })
         ).rejects.toMatchObject({ statusCode: 400 });
     });
 
@@ -113,7 +113,7 @@ describe("AuthService signup", () => {
             AuthService.signup({
                 fullName: "Guest",
                 email: "user@example.com",
-                password: "12345",
+                password: "1234567",
             })
         ).rejects.toMatchObject({ statusCode: 400 });
     });
@@ -125,7 +125,7 @@ describe("AuthService signup", () => {
             AuthService.signup({
                 fullName: "Guest",
                 email: "USER@example.com",
-                password: "secret",
+                password: "secret123",
             })
         ).rejects.toMatchObject({ statusCode: 400 });
         expect(User.findOne).toHaveBeenCalledWith({ email: "user@example.com" });
@@ -135,7 +135,7 @@ describe("AuthService signup", () => {
 describe("AuthService.googleLogin", () => {
     it("rejects missing Google credentials", async () => {
         await expect(AuthService.googleLogin("")).rejects.toMatchObject({
-            statusCode: 500,
+            statusCode: 400,
         });
     });
 });

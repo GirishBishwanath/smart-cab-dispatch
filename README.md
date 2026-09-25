@@ -2,9 +2,11 @@
 
 # Smart Cab Dispatch
 
-**Real-time ride dispatch, live driver tracking, and road-aware routing across three connected portals.**
+**Real-time ride dispatch, live driver tracking, and road-aware routing across connected Guest, Driver, and Admin portals.**
 
-[Live Landing Page](https://smart-cab-dispatch.vercel.app) · [Guest Portal](https://smart-cab-dispatch-guest.vercel.app) · [Driver Portal](https://smart-cab-dispatch-driver.vercel.app) · [Admin Portal](https://smart-cab-dispatch-admin.vercel.app)
+[![CI](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml)
+
+[Live Landing Page](https://smart-cab-dispatch.vercel.app/) · [Guest Portal](https://smart-cab-dispatch-guest.vercel.app/) · [Driver Portal](https://smart-cab-dispatch-driver.vercel.app/) · [Admin Portal](https://smart-cab-dispatch-admin.vercel.app/) · [GitHub Repository](https://github.com/GirishBishwanath/smart-cab-dispatch)
 
 </div>
 
@@ -12,91 +14,264 @@
 
 ## Overview
 
-Smart Cab Dispatch is a full-stack transportation platform designed for hotel, airport, and event operations. Guests can create map-based ride requests, dispatchers approve and assign suitable vehicles, drivers manage the trip lifecycle, and authorized users can follow the driver's live location from the relevant portal.
+Smart Cab Dispatch is a full-stack transportation and fleet dispatch platform designed for hotel, airport, and event operations.
 
-The project is a monorepo with one Node.js backend and four independently deployed frontend applications: public landing, Guest, Driver, and Admin.
+The platform covers the complete ride workflow:
 
-## What makes it different
+1. A guest selects pickup and destination locations on a map and creates a ride request.
+2. An admin reviews and approves the request.
+3. The dispatch service finds an eligible driver and vehicle using proximity, passenger capacity, and luggage capacity.
+4. The assigned driver receives the ride through the real-time layer.
+5. The driver accepts the ride, arrives, picks up the guest, and completes the trip.
+6. Authorized Guest and Admin clients receive live ride status, driver location, route, and ETA updates.
 
-- **Map-based booking** — guests select pickup and destination locations with Leaflet/OpenStreetMap.
-- **Capacity-aware dispatch** — available drivers are checked against passenger and luggage requirements before assignment.
-- **Proximity-aware matching** — eligible drivers are ranked by distance from the pickup point using geographic distance calculation.
-- **Live driver tracking** — Socket.IO streams authenticated driver location updates to authorized ride participants and operations.
-- **Road-aware routes** — OSRM provides actual driving geometry, road distance, and ETA instead of a straight-line estimate.
-- **Complete ride lifecycle** — requests, assignment, acceptance, arrival, pickup, completion, and cancellation outcomes are tracked independently.
-- **Production deployment** — the landing page and three portals run on Vercel, with the backend deployed on Render and connected to MongoDB Atlas.
+The repository is a monorepo containing one Node.js backend and four independently deployed frontend applications:
 
-## Portals
+- Public Landing
+- Guest Portal
+- Driver Portal
+- Admin Portal
 
-| Portal | Purpose |
-|---|---|
-| **Guest** | Create ride requests, choose pickup/destination on a map, follow active rides, and view history |
-| **Driver** | View assignments, accept/decline rides, update trip status, share live location, and view history |
-| **Admin** | Manage ride requests, drivers, guests, fleet activity, assignments, and live trips |
+## Live Applications
 
-## Ride flow
+| Application | Purpose | URL |
+|---|---|---|
+| Landing | Public product website and portal entry point | [Open](https://smart-cab-dispatch.vercel.app/) |
+| Guest Portal | Booking, active ride tracking, profile, and history | [Open](https://smart-cab-dispatch-guest.vercel.app/) |
+| Driver Portal | Assigned rides, trip lifecycle, live location, and history | [Open](https://smart-cab-dispatch-driver.vercel.app/) |
+| Admin Portal | Dispatch, fleet, guest, driver, and ride operations | [Open](https://smart-cab-dispatch-admin.vercel.app/) |
+| Backend API | REST API and Socket.IO server | [Open](https://smart-cab-backend-jcfm.onrender.com/) |
+
+## Core Features
+
+### Map-based booking
+
+Guests select pickup and destination locations using Leaflet and OpenStreetMap. The backend stores validated coordinates and ride details as a separate RideRequest before assignment.
+
+### Capacity and proximity-aware dispatch
+
+The dispatch engine:
+
+- Finds available drivers without an active ride or break
+- Ranks candidates by geographic distance using the Haversine formula
+- Checks passenger capacity
+- Checks luggage capacity
+- Revalidates driver and vehicle eligibility during assignment
+- Creates the Ride and links it to the selected driver transactionally
+
+### Real-time driver tracking
+
+Driver browsers connect through authenticated Socket.IO sessions.
+
+Location updates are validated against:
+
+- Authenticated driver identity
+- Active ride ownership
+- Coordinate validity
+- Client timestamp ordering
+- Stale or future-dated updates
+
+Accepted locations are persisted before being broadcast to authorized clients.
+
+### Road-aware routing and ETA
+
+OSRM is used through a backend routing service to provide:
+
+- Driving route geometry
+- Road distance
+- Route duration
+- ETA information for active trips
+
+The frontend renders the route and live driver position using Leaflet.
+
+### Complete ride lifecycle
+
+The platform models ride requests separately from assigned rides and supports:
+
+`PENDING → ASSIGNED → ARRIVED → PICKED_UP → COMPLETED`
+
+with cancellation and driver-decline paths handled separately.
+
+### Authentication and authorization
+
+- JWT authentication for REST APIs
+- JWT authentication for Socket.IO handshakes
+- Google Sign-In verification through Google Identity Services
+- bcrypt password hashing
+- Guest, Driver, and Admin role-based authorization
+- Passwords excluded from authenticated user responses
+- Local account passwords require at least 8 characters
+
+## Architecture
+
+The backend follows a layered architecture:
 
 ```text
-Guest creates request
+Frontend Applications
         ↓
-Admin reviews request
+REST API + Socket.IO
         ↓
-Dispatch engine finds available driver + suitable vehicle
+Express / Node.js
         ↓
-Driver receives assignment in real time
+Controllers
         ↓
-Driver accepts → arrives → picks up → completes
+Services
         ↓
-Live status/location updates reach authorized clients
+MongoDB / External Services
 ```
 
-## Real-time location flow
+Core backend services include:
+
+- Authentication
+- Guest management
+- Driver and vehicle management
+- Ride requests
+- Ride lifecycle
+- Driver dispatch
+- Routing
+- Socket event delivery
+
+MongoDB remains the durable source of truth for driver assignment and ride state.
+
+### Concurrency and reliability
+
+Driver assignment and ride lifecycle operations use MongoDB transactions and conditional updates to protect against concurrent state changes.
+
+The backend also includes:
+
+- Unique ride-request constraint
+- Duplicate assignment protection
+- Optimistic concurrency handling
+- Driver ownership checks
+- Atomic driver release
+- Driver location freshness tracking
+- Stale location update rejection
+- OSRM timeout and fallback handling
+
+### Real-time flow
 
 ```text
-Driver device
-    ↓
-Socket.IO authenticated connection
-    ↓
-Backend validates driver + active ride
-    ↓
-Driver location is persisted
-    ↓
-Authorized guest/admin clients receive updates
-    ↓
-Live map updates marker + road route + ETA
+Driver browser
+      ↓
+Authenticated Socket.IO connection
+      ↓
+Validate driver + active ride
+      ↓
+Persist accepted location
+      ↓
+Emit to authorized rooms
+      ↓
+Guest / Admin live maps
 ```
 
-## Routing flow
+## Technology Stack
+
+### Frontend
+
+- React 19
+- Vite
+- Tailwind CSS v4
+- React Router
+- Axios
+- Socket.IO Client
+- Leaflet
+- React-Leaflet
+
+### Backend
+
+- Node.js
+- Express
+- MongoDB
+- Mongoose
+- Socket.IO
+- JWT
+- bcrypt
+- Google Identity Services
+
+### Maps and Routing
+
+- Leaflet
+- OpenStreetMap
+- OSRM
+
+### Testing and Engineering
+
+- Vitest
+- MongoDB replica-set integration testing
+- GitHub Actions
+- Docker
+- Node.js 22 CI runtime
+
+### Deployment
+
+- Vercel
+- Render
+- MongoDB Atlas
+
+## Testing and Quality
+
+The repository includes deterministic backend tests and integration coverage for critical application behavior.
+
+CI validates:
+
+- Dependency installation with `npm ci`
+- Frontend linting
+- Frontend production builds
+- Backend syntax
+- Backend automated tests
+- Backend production dependency audit
+- MongoDB replica-set integration tests
+- Backend Docker image builds
+
+The integration test environment uses a real MongoDB replica set to validate concurrency-sensitive driver assignment behavior rather than relying only on mocks.
+
+## Security and Operational Hardening
+
+The backend includes lightweight production-oriented safeguards:
+
+- CORS origin allow-listing
+- JWT authentication and role authorization
+- Password hashing with bcrypt
+- Sensitive-field redaction in structured logs
+- Request correlation through `X-Request-ID`
+- Normalized request-path logging without query parameters
+- 1 MB JSON request-body limit
+- Baseline security response headers
+- `X-Powered-By` removal
+- Generic production error responses
+- Liveness and readiness health endpoints
+- Graceful SIGTERM and SIGINT shutdown
+- OSRM timeout and failure handling
+
+## Deployment Architecture
 
 ```text
-Pickup / driver position
-        ↓
-Backend routing service
-        ↓
-OSRM driving route
-        ↓
-Road geometry + distance + duration
-        ↓
-Leaflet map + journey metrics
+                 ┌─────────────────────┐
+                 │ Landing / Vercel    │
+                 └──────────┬──────────┘
+                            │
+       ┌────────────────────┼────────────────────┐
+       ↓                    ↓                    ↓
+ Guest / Vercel       Driver / Vercel      Admin / Vercel
+       └────────────────────┼────────────────────┘
+                            ↓
+                 ┌─────────────────────┐
+                 │ Backend / Render    │
+                 │ Express + Socket.IO │
+                 └──────────┬──────────┘
+                            ↓
+                    ┌───────────────┐
+                    │ MongoDB Atlas │
+                    └───────────────┘
+                            +
+                           OSRM
 ```
 
-The backend keeps OSRM behind a dedicated routing service so mapping clients remain independent of the routing provider.
+The backend also has a production Dockerfile used for reproducible runtime validation and CI image builds. The current Render deployment uses the native Node.js runtime because it matches the application's operational requirements without unnecessary infrastructure migration.
 
-## Technology stack
+See [docs/Deployment.md](docs/Deployment.md) for deployment configuration, environment variables, CORS, OAuth, MongoDB requirements, and the production smoke-test flow.
 
-**Frontend**  
-React 19 · Vite · Tailwind CSS v4 · React Router · Axios · Socket.IO Client · Leaflet · React-Leaflet
-
-**Backend**  
-Node.js · Express · MongoDB · Mongoose · Socket.IO · JWT · bcrypt · Google Identity Services
-
-**Routing & Maps**  
-Leaflet · OpenStreetMap · OSRM
-
-**Deployment**  
-Vercel · Render · MongoDB Atlas
-
-## Repository structure
+## Repository Structure
 
 ```text
 smart-cab-dispatch/
@@ -108,122 +283,6 @@ smart-cab-dispatch/
 └── docs/             Architecture, API, deployment, system design
 ```
 
-## Backend architecture
-
-The backend follows a layered structure:
-
-```text
-Routes
-  ↓
-Controllers
-  ↓
-Services
-  ↓
-Models / External Services
-```
-
-Cross-cutting concerns such as JWT authentication, RBAC, validation, error handling, environment configuration, and Socket.IO authentication are separated into middleware/config modules.
-
-Key services include authentication, ride requests, ride lifecycle, driver management, dispatch, routing, and socket event delivery.
-
-See [docs/Architecture.md](docs/Architecture.md) for the detailed architecture and data model.
-
-## Authentication & authorization
-
-- JWT-based authentication for REST APIs
-- Server-side Google Sign-In verification for guest authentication
-- Role-based authorization for Guest, Driver, and Admin operations
-- JWT authentication reused for Socket.IO handshakes
-- Passwords stored using bcrypt hashes
-
-See [docs/API.md](docs/API.md) for endpoint and authorization details.
-
-## Local development
-
-### Prerequisites
-
-Node.js 18+ · MongoDB (local or Atlas) · Google OAuth Client ID for guest Google sign-in
-
-### Backend
-
-```bash
-cd backend
-npm install
-```
-
-Create `backend/.env`:
-
-```env
-PORT=5000
-MONGO_URI=<your MongoDB connection string>
-JWT_SECRET=<your JWT secret>
-GOOGLE_CLIENT_ID=<your Google OAuth client ID>
-OSRM_BASE_URL=https://router.project-osrm.org
-OSRM_ETA_FACTOR=1.4
-```
-
-```bash
-npm run seed
-npm run dev
-```
-
-### Frontends
-
-Each application has its own `package.json` and can be run independently.
-
-```bash
-cd guest-portal
-npm install
-npm run dev
-```
-
-Use the corresponding portal directory for Driver, Admin, or Landing. Frontend environment variables are documented in [docs/Deployment.md](docs/Deployment.md).
-
-## Production deployment
-
-| Application | Platform | Production URL |
-|---|---|---|
-| Landing | Vercel | https://smart-cab-dispatch.vercel.app |
-| Guest | Vercel | https://smart-cab-dispatch-guest.vercel.app |
-| Driver | Vercel | https://smart-cab-dispatch-driver.vercel.app |
-| Admin | Vercel | https://smart-cab-dispatch-admin.vercel.app |
-| Backend | Render | https://smart-cab-backend-jcfm.onrender.com |
-
-See [docs/Deployment.md](docs/Deployment.md) for environment variables, CORS, OAuth, and deployment configuration.
-
-## Engineering decisions
-
-### Why MongoDB?
-
-The operational data model is document-oriented with shallow references between users, guests, drivers, vehicles, ride requests, and rides. MongoDB fits the current workload without introducing joins that the application does not need.
-
-### Why OSRM?
-
-The platform needs road-aware route geometry and distance rather than straight-line distance. OSRM provides that behind a small service abstraction, allowing the routing provider to be changed later without coupling the frontend to it.
-
-### Why Socket.IO?
-
-Ride status and driver location are time-sensitive and should not require repeated polling. Socket.IO provides authenticated, targeted real-time delivery while preserving a simple browser/server programming model.
-
-### Why separate frontends?
-
-Guest, Driver, and Admin workflows have different navigation, permissions, and UI concerns. Separate applications keep each deployment focused on the role it serves while sharing the same backend API and real-time layer.
-
-## Scalability direction
-
-The current implementation is intentionally sized for a small operational deployment. The repository documents how the architecture can evolve without prematurely adding infrastructure.
-
-Potential scale-up steps include:
-
-- MongoDB geospatial indexes for larger driver pools
-- Redis for shared real-time coordination and targeted caching
-- Redis + BullMQ for asynchronous dispatch/notification workloads
-- Socket.IO Redis adapter when running multiple backend instances
-- PostgreSQL only for a future reporting workload that benefits from relational analytics
-- Kafka only when a larger system genuinely needs durable multi-consumer event streaming
-
-See [docs/SystemDesign.md](docs/SystemDesign.md) for the trade-offs and failure modes behind these decisions.
-
 ## Documentation
 
 - [Architecture](docs/Architecture.md)
@@ -231,14 +290,47 @@ See [docs/SystemDesign.md](docs/SystemDesign.md) for the trade-offs and failure 
 - [Deployment](docs/Deployment.md)
 - [System Design](docs/SystemDesign.md)
 
+## Engineering Decisions
+
+### Why MongoDB?
+
+The operational data model consists of users, guests, drivers, vehicles, ride requests, and rides with straightforward document relationships. MongoDB fits the current operational workload while supporting the transactions required for assignment and lifecycle consistency.
+
+### Why Socket.IO?
+
+Ride status and driver location are time-sensitive. Socket.IO provides authenticated, targeted real-time communication without requiring continuous polling.
+
+### Why OSRM?
+
+The application needs road-aware geometry, distance, and duration rather than straight-line distance. OSRM provides these capabilities behind a backend routing abstraction.
+
+### Why separate frontends?
+
+Guest, Driver, and Admin workflows have different navigation, permissions, and operational concerns. Separate Vite applications keep each portal focused while sharing the same backend API and real-time layer.
+
+## Scalability Direction
+
+The current architecture is intentionally sized for a small operational deployment. The repository documents concrete scale-up paths rather than introducing infrastructure before it is needed.
+
+Potential future steps include:
+
+- MongoDB geospatial indexes for larger driver pools
+- Redis for shared Socket.IO coordination or caching when multiple backend instances are required
+- BullMQ and workers for asynchronous workloads
+- A centralized observability platform when log retention, metrics, tracing, or alerting requirements justify it
+- A traffic-aware routing provider when ETA requirements move beyond OSRM's capabilities
+- Kafka only if the system grows into a multi-service architecture requiring durable distributed event streams
+
+Redis, Kafka, Kubernetes, microservices, and infrastructure migration are intentionally not part of the current implementation.
+
 ## License
 
-MIT — see [LICENCE](LICENCE).
+MIT. See [LICENCE](LICENCE).
 
 ---
 
 <div align="center">
 
-Built end-to-end by **Girish Bishwanath**.
+Built end-to-end by **Girish Bishwanath**
 
 </div>

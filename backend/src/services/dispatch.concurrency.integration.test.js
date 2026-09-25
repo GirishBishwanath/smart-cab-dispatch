@@ -21,7 +21,21 @@ if (!MONGO_URI) {
 
 describe("dispatch concurrency integration", () => {
     beforeAll(async () => {
-        await mongoose.connect(MONGO_URI);
+        await mongoose.connect(MONGO_URI, {
+            autoIndex: false,
+        });
+
+        // Clean the dedicated integration database before explicitly building
+        // indexes. This keeps test startup deterministic even after an
+        // interrupted run left duplicate documents behind.
+        await Promise.all([
+            RideRequest.deleteMany({}),
+            Ride.deleteMany({}),
+            Vehicle.deleteMany({}),
+            Driver.deleteMany({}),
+            Guest.deleteMany({}),
+            User.deleteMany({}),
+        ]);
 
         await Promise.all([
             User.init(),
