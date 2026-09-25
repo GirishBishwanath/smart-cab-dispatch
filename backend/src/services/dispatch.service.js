@@ -140,83 +140,92 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
         });
     }
 
-    const createAssignment = async (session) => {
-        let rideId = null;
-        let driverUserId = null;
+    const performAssignment = async (session) => {
+        let reservedDriver = null;
+        let selectedVehicle = null;
 
-        await session.withTransaction(async () => {
-            let reservedDriver = null;
-            let selectedVehicle = null;
+        for (const candidate of eligibleDrivers) {
+            const vehicle = await Vehicle.findOne({
+                driver: candidate._id,
+                isActive: true,
+            }).session(session);
 
-            for (const candidate of eligibleDrivers) {
-                const vehicle = await Vehicle.findOne({
-                    driver: candidate._id,
-                    isActive: true,
-                }).session(session);
+            if (!vehicle) continue;
 
-                if (!vehicle) continue;
+            const hasEnoughSeats =
+                vehicle.seatCapacity >= rideRequest.groupSize;
 
-                const hasEnoughSeats =
-                    vehicle.seatCapacity >= rideRequest.groupSize;
+            const hasEnoughLuggageSpace =
+                vehicle.luggageCapacity >= rideRequest.luggageCount;
 
-                const hasEnoughLuggageSpace =
-                    vehicle.luggageCapacity >= rideRequest.luggageCount;
+            if (!hasEnoughSeats || !hasEnoughLuggageSpace) continue;
 
-                if (!hasEnoughSeats || !hasEnoughLuggageSpace) continue;
-
-                const claimedDriver = await reserveDriver(
-                    candidate._id,
-                    session
-                );
-
-                if (!claimedDriver) continue;
-
-                reservedDriver = claimedDriver;
-                selectedVehicle = vehicle;
-                break;
-            }
-
-            if (!reservedDriver) {
-                throw new ApiError(
-                    400,
-                    "No driver could be reserved"
-                );
-            }
-
-            const [ride] = await Ride.create([
-                {
-                    rideRequest: rideRequest._id,
-                    guests: [rideRequest.guest],
-                    driver: reservedDriver._id,
-                    vehicle: selectedVehicle._id,
-                    tripType: rideRequest.tripType,
-                    pickupLocation: rideRequest.pickupLocation,
-                    dropLocation: rideRequest.dropLocation,
-                    estimatedDistance,
-                    estimatedDuration,
-                    assignedAt: new Date(),
-                    status: RIDE_STATUS.ASSIGNED,
-                },
-            ], { session });
-
-            const attachedDriver = await attachRideToDriver(
-                reservedDriver._id,
-                ride._id,
+            const claimedDriver = await reserveDriver(
+                candidate._id,
                 session
             );
 
-            if (!attachedDriver) {
-                throw new ApiError(
-                    409,
-                    "Driver reservation could not be finalized"
-                );
-            }
+            if (!claimedDriver) continue;
 
-            rideId = ride._id;
-            driverUserId = reservedDriver.user.toString();
+            reservedDriver = claimedDriver;
+            selectedVehicle = vehicle;
+            break;
+        }
+
+        if (!reservedDriver) {
+            throw new ApiError(
+                400,
+                "No driver could be reserved"
+            );
+        }
+
+        const [ride] = await Ride.create([
+            {
+                rideRequest: rideRequest._id,
+                guests: [rideRequest.guest],
+                driver: reservedDriver._id,
+                vehicle: selectedVehicle._id,
+                tripType: rideRequest.tripType,
+                pickupLocation: rideRequest.pickupLocation,
+                dropLocation: rideRequest.dropLocation,
+                estimatedDistance,
+                estimatedDuration,
+                assignedAt: new Date(),
+                status: RIDE_STATUS.ASSIGNED,
+            },
+        ], { session });
+
+        const attachedDriver = await attachRideToDriver(
+            reservedDriver._id,
+            ride._id,
+            session
+        );
+
+        if (!attachedDriver) {
+            throw new ApiError(
+                409,
+                "Driver reservation could not be finalized"
+            );
+        }
+
+        return {
+            rideId: ride._id,
+            driverUserId: reservedDriver.user.toString(),
+        };
+    };
+
+    const createAssignment = async (session) => {
+        if (sessionOverride) {
+            return performAssignment(session);
+        }
+
+        let assignment;
+
+        await session.withTransaction(async () => {
+            assignment = await performAssignment(session);
         });
 
-        return { rideId, driverUserId };
+        return assignment;
     };
 
     let assignment;
