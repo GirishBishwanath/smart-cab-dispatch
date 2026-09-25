@@ -11,8 +11,14 @@ import routingService from "./routing.service.js";
 import socketService from "./socket.service.js";
 import logger from "../utils/logger.js";
 
-const populateRide = (rideId) =>
-    Ride.findById(rideId)
+const populateRide = (rideId, session = null) => {
+    const query = Ride.findById(rideId);
+
+    if (session) {
+        query.session(session);
+    }
+
+    return query
         .populate({
             path: "driver",
             populate: { path: "user", select: "-password -__v" },
@@ -23,6 +29,7 @@ const populateRide = (rideId) =>
             path: "guests",
             populate: { path: "user", select: "-password -__v" },
         });
+};
 
 const findAvailableDrivers = () =>
     Driver.find({
@@ -265,7 +272,10 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
         };
     }
 
-    const populatedRide = await populateRide(assignment.rideId);
+    const populatedRide = await populateRide(
+        assignment.rideId,
+        sessionOverride
+    );
 
     if (!populatedRide) {
         throw new ApiError(500, "Assigned ride could not be loaded");
