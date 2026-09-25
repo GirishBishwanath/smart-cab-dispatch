@@ -18,7 +18,7 @@ const getMyRideRequests = asyncHandler(async (req, res) => {
 });
 
 const approveRideRequest = asyncHandler(async (req, res) => {
-    const ride = await rideRequestService.approveRideRequest(req.params.id);
+    const ride = await rideRequestService.approveRideRequest(req.params.id, req.user.id);
     return successResponse(res, ride, "Ride assigned successfully");
 });
 
