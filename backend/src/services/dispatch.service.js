@@ -236,7 +236,7 @@ const assignDriver = async (rideRequest, sessionOverride = null) => {
         ownedSession = !sessionOverride;
         assignment = await createAssignment(session);
     } catch (error) {
-        if (!isDuplicateRideRequestError(error)) {
+        if (sessionOverride || !isDuplicateRideRequestError(error)) {
             throw error;
         }
 
