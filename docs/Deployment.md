@@ -155,3 +155,14 @@ Guest/Admin → Observe live marker + route + ETA
 Driver → Arrive → Pick up → Complete
 Guest/Admin → Verify final ride state and history
 ```
+
+
+## Demo Data Reliability
+
+The backend supports an opt-in `DEMO_DATA_ENABLED=true` environment variable for the public demo deployment.
+
+When enabled, the backend repairs the three documented demo accounts and any missing demo driver/vehicle/guest records during startup before accepting traffic. This removes the previous dependency on a manual `npm run seed` operation after a database reset or replacement.
+
+The flag is intentionally disabled by default for normal local development and non-demo environments.
+
+The startup bootstrap is idempotent: existing operational ride state is not reset merely because the service restarts.
