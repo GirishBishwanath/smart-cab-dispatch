@@ -48,7 +48,7 @@ JWT_SECRET=<strong secret>
 GOOGLE_CLIENT_ID=<Google OAuth client ID>
 OSRM_BASE_URL=https://router.project-osrm.org
 OSRM_ETA_FACTOR=1.4
-ALLOWED_ORIGINS=<production frontend origins>
+DEMO_DATA_ENABLED=true
 ```
 
 Render provides `PORT` for the running service. The application also has a local fallback port for development.
@@ -117,7 +117,7 @@ Never commit real secrets or production credentials to the repository. Vite vari
 
 ## CORS
 
-The Express REST API and Socket.IO server both enforce allowed origins. Production frontend origins must therefore be included in the backend's `ALLOWED_ORIGINS` configuration.
+The Express REST API and Socket.IO server both enforce allowed origins. The production frontend origins are defined in the backend's allowed-origin configuration.
 
 Current production origins:
 
