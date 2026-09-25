@@ -205,6 +205,42 @@ describe("dispatchService.assignDriver", () => {
         );
     });
 
+    it("reads the newly created ride through the active transaction session", async () => {
+        const driver = createDriver();
+        const vehicle = {
+            _id: "vehicle-1",
+            seatCapacity: 4,
+            luggageCapacity: 4,
+        };
+        const reservedDriver = {
+            ...driver,
+            status: DRIVER_STATUS.ASSIGNED,
+        };
+        const ride = { _id: "ride-1" };
+        const populatedRide = { _id: "ride-1", driver: reservedDriver };
+        const session = createSession();
+
+        Driver.find.mockReturnValue(createQuery([driver]));
+        Vehicle.findOne.mockReturnValue(createQuery(vehicle));
+        routingService.getDrivingRoute.mockResolvedValue({
+            distanceKm: 5,
+            durationMinutes: 10,
+        });
+        Driver.findOneAndUpdate.mockResolvedValue(reservedDriver);
+        Ride.create.mockResolvedValue([ride]);
+        const rideQuery = createQuery(populatedRide);
+        Ride.findById.mockReturnValue(rideQuery);
+
+        const result = await dispatchService.assignDriver(
+            createRequest(),
+            session
+        );
+
+        expect(result).toBe(populatedRide);
+        expect(rideQuery.session).toHaveBeenCalledWith(session);
+        expect(socketService.emitRideAssigned).not.toHaveBeenCalled();
+    });
+
     it("does not assign a driver that loses the atomic reservation race", async () => {
         const driver = createDriver();
         const vehicle = {
