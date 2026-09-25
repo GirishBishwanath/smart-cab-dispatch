@@ -112,13 +112,14 @@ const findRequestForDecision = async (id, session, message) => {
     throw new ApiError(400, message);
 };
 
-const approveRideRequest = async (id) => {
+const approveRideRequest = async (id, adminUserId) => {
     const ride = await withTransaction(async (session) => {
         const request = await RideRequest.findOneAndUpdate(
             { _id: id, status: "PENDING" },
             {
                 $set: {
                     status: "APPROVED",
+                    approvedBy: adminUserId,
                     approvedAt: new Date(),
                 },
             },
