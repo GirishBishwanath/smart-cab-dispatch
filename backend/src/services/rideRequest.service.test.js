@@ -159,7 +159,7 @@ describe("RideRequestService.approveRideRequest", () => {
         RideRequest.findOneAndUpdate.mockReturnValue(createQuery(request));
         dispatchService.assignDriver.mockResolvedValue(ride);
 
-        const result = await RideRequestService.approveRideRequest("request-1");
+        const result = await RideRequestService.approveRideRequest("request-1", "admin-1");
 
         expect(RideRequest.findOneAndUpdate).toHaveBeenCalledWith(
             { _id: "request-1", status: "PENDING" },
