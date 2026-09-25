@@ -48,7 +48,7 @@ JWT_SECRET=<strong secret>
 GOOGLE_CLIENT_ID=<Google OAuth client ID>
 OSRM_BASE_URL=https://router.project-osrm.org
 OSRM_ETA_FACTOR=1.4
-ALLOWED_ORIGINS=<production frontend origins>
+DEMO_DATA_ENABLED=true
 ```
 
 Render provides `PORT` for the running service. The application also has a local fallback port for development.
@@ -117,7 +117,7 @@ Never commit real secrets or production credentials to the repository. Vite vari
 
 ## CORS
 
-The Express REST API and Socket.IO server both enforce allowed origins. Production frontend origins must therefore be included in the backend's `ALLOWED_ORIGINS` configuration.
+The Express REST API and Socket.IO server both enforce allowed origins. The production frontend origins are defined in the backend's allowed-origin configuration.
 
 Current production origins:
 
@@ -155,3 +155,14 @@ Guest/Admin → Observe live marker + route + ETA
 Driver → Arrive → Pick up → Complete
 Guest/Admin → Verify final ride state and history
 ```
+
+
+## Demo Data Reliability
+
+The backend supports an opt-in `DEMO_DATA_ENABLED=true` environment variable for the public demo deployment.
+
+When enabled, the backend repairs the three documented demo accounts and any missing demo driver/vehicle/guest records during startup before accepting traffic. This removes the previous dependency on a manual `npm run seed` operation after a database reset or replacement.
+
+The flag is intentionally disabled by default for normal local development and non-demo environments.
+
+The startup bootstrap is idempotent: existing operational ride state is not reset merely because the service restarts.

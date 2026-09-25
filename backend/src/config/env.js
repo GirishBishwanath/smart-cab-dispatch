@@ -8,6 +8,7 @@ export const MONGO_URI = process.env.MONGO_URI;
 export const JWT_EXPIRES_IN = "7d";
 
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+export const DEMO_DATA_ENABLED = process.env.DEMO_DATA_ENABLED === "true";
 
 export const ALLOWED_ORIGINS = [
     "http://localhost:5173",

@@ -15,6 +15,7 @@ vi.mock("mongoose", () => ({
 vi.mock("../models/RideRequest.js", () => ({
     default: {
         create: vi.fn(),
+        findOne: vi.fn(),
         findById: vi.fn(),
         find: vi.fn(),
         findOneAndUpdate: vi.fn(),
@@ -92,6 +93,7 @@ describe("RideRequestService.createRideRequest", () => {
         const populated = { _id: "request-1", status: "PENDING" };
 
         Guest.findOne.mockResolvedValue(guest);
+        RideRequest.findOne.mockResolvedValue(null);
         RideRequest.create.mockResolvedValue(created);
         RideRequest.findById.mockReturnValue(createQuery(populated));
 

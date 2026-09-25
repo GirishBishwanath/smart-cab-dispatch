@@ -65,8 +65,9 @@ rideRequestSchema.index(
     { guest: 1 },
     {
         unique: true,
+        name: "unique_pending_ride_request_per_guest",
         partialFilterExpression: {
-            status: { $in: ["PENDING", "APPROVED"] },
+            status: "PENDING",
         },
     }
 );

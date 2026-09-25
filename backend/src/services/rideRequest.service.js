@@ -49,6 +49,21 @@ const createRideRequest = async (userId, data) => {
         );
     }
 
+    const activeRequest = await RideRequest.findOne({
+        guest: guest._id,
+        $or: [
+            { status: "PENDING" },
+            { status: "APPROVED", ride: null },
+        ],
+    });
+
+    if (activeRequest) {
+        throw new ApiError(
+            409,
+            "You already have an active ride request."
+        );
+    }
+
     const rideRequest = await RideRequest.create({
         guest: guest._id,
         pickupLocation: data.pickupLocation,
