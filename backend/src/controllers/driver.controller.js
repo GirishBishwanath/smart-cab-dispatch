@@ -1,6 +1,7 @@
 import driverService from "../services/driver.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
+import ApiError from "../utils/ApiError.js";
 
 const createDriver = asyncHandler(async (req, res) => {
     const {
@@ -22,7 +23,7 @@ const createDriver = asyncHandler(async (req, res) => {
         seatCapacity === undefined ||
         luggageCapacity === undefined
     ) {
-        throw new Error("All required fields are mandatory");
+        throw new ApiError(400, "All required fields are mandatory");
     }
 
     const driver = await driverService.createDriver(req.body);
