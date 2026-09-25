@@ -29,6 +29,7 @@ const populateRide = (rideId, session = null) => {
             path: "guests",
             populate: { path: "user", select: "-password -__v" },
         });
+};
 
 const findAvailableDrivers = () =>
     Driver.find({
