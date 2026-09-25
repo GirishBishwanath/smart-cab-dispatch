@@ -97,17 +97,17 @@ class AuthService {
     }
 
     async googleLogin(idToken) {
-        if (!googleClient) {
-            throw new ApiError(
-                500,
-                "Google authentication is not configured."
-            );
-        }
-
         if (!idToken) {
             throw new ApiError(
                 400,
                 "Google authentication credential is missing."
+            );
+        }
+
+        if (!googleClient) {
+            throw new ApiError(
+                500,
+                "Google authentication is not configured."
             );
         }
 
