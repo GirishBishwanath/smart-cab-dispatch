@@ -451,7 +451,6 @@ JWT_SECRET=<strong secret>
 GOOGLE_CLIENT_ID=<Google OAuth client ID>
 OSRM_BASE_URL=https://router.project-osrm.org
 OSRM_ETA_FACTOR=1.4
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176
 ```
 
 ### Landing
@@ -479,7 +478,7 @@ VITE_SOCKET_URL=http://localhost:5000
 VITE_LANDING_URL=http://localhost:5173
 ```
 
-`GOOGLE_CLIENT_ID` is needed for Google Sign-In. Never commit real credentials.
+`GOOGLE_CLIENT_ID` is needed for Google Sign-In. The backend's current CORS allow-list is defined in `backend/src/config/env.js`; it is not an environment variable. Never commit real credentials.
 
 ---
 
