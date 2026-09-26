@@ -1,8 +1,17 @@
 <div align="center">
 
-# Smart Cab Dispatch
+<table>
+  <tr>
+    <td valign="middle" align="center">
+      <img src="landing/public/smart-cab-logo.png" alt="Smart Cab Dispatch logo" width="72" />
+    </td>
+    <td valign="middle">
+      <h1>Smart Cab Dispatch</h1>
+    </td>
+  </tr>
+</table>
 
-**A full-stack, real-time ride dispatch platform for guest, driver, and operations workflows.**
+<strong>A full-stack, real-time ride dispatch platform for guest, driver, and operations workflows.</strong>
 
 [![CI](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENCE)
@@ -81,19 +90,30 @@ Assigned Ride
 
 ## Product Preview
 
-The final visual set is captured from the deployed application and covers the four primary product surfaces.
+A quick look at the four primary product surfaces. The original high-resolution PNGs are retained in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md); the presentation below uses a consistent visual height and two-column layout without cropping or stretching the screenshots.
 
-The screenshots are stored in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md) and embedded below.
-
-<p align="center">
-  <img src="docs/assets/screenshots/landing-page.png" alt="Screenshot of the Smart Cab Dispatch landing page." width="49%" />
-  <img src="docs/assets/screenshots/guest-booking.png" alt="Screenshot of the guest booking workflow with an interactive map." width="49%" />
-</p>
-
-<p align="center">
-  <img src="docs/assets/screenshots/driver-current-ride.png" alt="Screenshot of the driver portal showing an active current ride." width="49%" />
-  <img src="docs/assets/screenshots/admin-dashboard.png" alt="Screenshot of the admin portal showing the operations dashboard." width="49%" />
-</p>
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <strong>Landing &amp; Dispatch Visualization</strong><br/><br/>
+      <img src="docs/assets/screenshots/landing-page.png" alt="Screenshot of the Smart Cab Dispatch landing page." height="300" />
+    </td>
+    <td align="center" valign="top">
+      <strong>Guest Booking</strong><br/><br/>
+      <img src="docs/assets/screenshots/guest-booking.png" alt="Screenshot of the guest booking workflow with an interactive map." height="300" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      <strong>Driver Current Ride</strong><br/><br/>
+      <img src="docs/assets/screenshots/driver-current-ride.png" alt="Screenshot of the driver portal showing an active current ride." height="300" />
+    </td>
+    <td align="center" valign="top">
+      <strong>Admin Operations</strong><br/><br/>
+      <img src="docs/assets/screenshots/admin-dashboard.png" alt="Screenshot of the admin portal showing the operations dashboard." height="300" />
+    </td>
+  </tr>
+</table>
 
 The guest login screenshot is intentionally excluded because it contains a personal Google account/email and provides no additional product value.
 
