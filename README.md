@@ -83,14 +83,14 @@ Assigned Ride
 
 The final visual set is captured from the deployed application and covers the four primary product surfaces.
 
-| Screen | Asset |
-| --- | --- |
-| Landing page | `docs/assets/screenshots/landing-page.jpg` |
-| Guest booking | `docs/assets/screenshots/guest-booking.jpg` |
-| Driver current ride | `docs/assets/screenshots/driver-current-ride.jpg` |
-| Admin operations | `docs/assets/screenshots/admin-dashboard.jpg` |
+The four prepared screenshot assets are documented in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md):
 
-These screenshots are intentionally limited to the public product surface, guest booking workflow, driver execution workflow, and admin operations workflow. The guest login screenshot is excluded because it contains a personal Google account/email and provides no additional product value.
+- `landing-page.jpg` — landing page and dispatch visualization
+- `guest-booking.jpg` — guest booking workflow with map
+- `driver-current-ride.jpg` — driver assigned/current ride workflow
+- `admin-dashboard.jpg` — admin operations dashboard
+
+The guest login screenshot is intentionally excluded because it contains a personal Google account/email and provides no additional product value.
 
 The end-to-end workflow represented by the product is:
 
