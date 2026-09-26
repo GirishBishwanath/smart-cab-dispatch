@@ -83,12 +83,17 @@ Assigned Ride
 
 The final visual set is captured from the deployed application and covers the four primary product surfaces.
 
-The four prepared screenshot assets are documented in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md):
+The screenshots are stored in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md) and embedded below.
 
-- `landing-page.jpg` — landing page and dispatch visualization
-- `guest-booking.jpg` — guest booking workflow with map
-- `driver-current-ride.jpg` — driver assigned/current ride workflow
-- `admin-dashboard.jpg` — admin operations dashboard
+<p align="center">
+  <img src="docs/assets/screenshots/landing-page.png" alt="Smart Cab Dispatch landing page" width="49%" />
+  <img src="docs/assets/screenshots/guest-booking.png" alt="Guest booking workflow with map" width="49%" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/driver-current-ride.png" alt="Driver current ride workflow" width="49%" />
+  <img src="docs/assets/screenshots/admin-dashboard.png" alt="Admin operations dashboard" width="49%" />
+</p>
 
 The guest login screenshot is intentionally excluded because it contains a personal Google account/email and provides no additional product value.
 
