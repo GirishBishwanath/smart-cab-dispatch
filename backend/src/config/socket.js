@@ -372,8 +372,6 @@ const closeSocket = async () => {
 };
 
 const emitToUser = (userId, event, payload = {}) => {
-    const io = getIO();
-
     if (!userId) {
         logger.warn("socket.emit.skipped", {
             event,
@@ -382,7 +380,19 @@ const emitToUser = (userId, event, payload = {}) => {
         return;
     }
 
-    io.to(`user:${userId.toString()}`).emit(event, payload);
+    try {
+        const io = getIO();
+        io.to(`user:${userId.toString()}`).emit(event, payload);
+    } catch (error) {
+        // Realtime delivery is best-effort and must never turn a successful
+        // database operation into an HTTP 500 response.
+        logger.warn("socket.emit.failed", {
+            event,
+            userId: userId.toString(),
+            errorName: error?.name,
+            errorMessage: error?.message,
+        });
+    }
 };
 
 export {

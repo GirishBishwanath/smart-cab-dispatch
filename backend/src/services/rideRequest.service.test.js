@@ -15,6 +15,7 @@ vi.mock("mongoose", () => ({
 vi.mock("../models/RideRequest.js", () => ({
     default: {
         create: vi.fn(),
+        findOne: vi.fn(),
         findById: vi.fn(),
         find: vi.fn(),
         findOneAndUpdate: vi.fn(),
@@ -92,6 +93,7 @@ describe("RideRequestService.createRideRequest", () => {
         const populated = { _id: "request-1", status: "PENDING" };
 
         Guest.findOne.mockResolvedValue(guest);
+        RideRequest.findOne.mockResolvedValue(null);
         RideRequest.create.mockResolvedValue(created);
         RideRequest.findById.mockReturnValue(createQuery(populated));
 
@@ -120,7 +122,7 @@ describe("RideRequestService.approveRideRequest", () => {
         RideRequest.findById.mockReturnValue(createQuery(null));
 
         await expect(
-            RideRequestService.approveRideRequest("request-1")
+            RideRequestService.approveRideRequest("request-1", "admin-1")
         ).rejects.toMatchObject({ statusCode: 404 });
 
         expect(dispatchService.assignDriver).not.toHaveBeenCalled();
@@ -157,11 +159,16 @@ describe("RideRequestService.approveRideRequest", () => {
         RideRequest.findOneAndUpdate.mockReturnValue(createQuery(request));
         dispatchService.assignDriver.mockResolvedValue(ride);
 
-        const result = await RideRequestService.approveRideRequest("request-1");
+        const result = await RideRequestService.approveRideRequest("request-1", "admin-1");
 
         expect(RideRequest.findOneAndUpdate).toHaveBeenCalledWith(
             { _id: "request-1", status: "PENDING" },
-            { $set: expect.objectContaining({ status: "APPROVED" }) },
+            {
+                $set: expect.objectContaining({
+                    status: "APPROVED",
+                    approvedBy: "admin-1",
+                }),
+            },
             expect.objectContaining({ new: true, session })
         );
         expect(dispatchService.assignDriver).toHaveBeenCalledWith(request, session);

@@ -427,4 +427,15 @@ describe("emitToUser", () => {
         expect(ioMock.to).toHaveBeenCalledWith("user:user-1");
         expect(emit).toHaveBeenCalledWith("ride:status", { rideId: "ride-1" });
     });
+
+    it("does not throw when realtime delivery fails", () => {
+        initializeSocket({});
+        ioMock.to = vi.fn(() => {
+            throw new Error("socket unavailable");
+        });
+
+        expect(() =>
+            emitToUser("user-1", "ride:assigned", { rideId: "ride-1" })
+        ).not.toThrow();
+    });
 });

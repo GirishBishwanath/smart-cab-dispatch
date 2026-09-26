@@ -26,10 +26,7 @@ describe("ride domain invariants", () => {
         );
 
         expect(index).toBeDefined();
-        expect(index[1].partialFilterExpression.status.$in).toEqual([
-            "PENDING",
-            "APPROVED",
-        ]);
+        expect(index[1].partialFilterExpression.status).toBe("PENDING");
     });
 
     it("allows at most one ride for each ride request", () => {

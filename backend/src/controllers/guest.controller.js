@@ -1,12 +1,13 @@
 import guestService from "../services/guest.service.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { successResponse } from "../utils/response.js";
+import ApiError from "../utils/ApiError.js";
 
 const createGuest = asyncHandler(async (req, res) => {
     const { fullName, email, password, phone, accommodation, pickupLocation, dropLocation } = req.body;
 
     if (!fullName || !email || !password || !phone || !accommodation || !pickupLocation || !dropLocation) {
-        throw new Error("All required fields are mandatory");
+        throw new ApiError(400, "All required fields are mandatory");
     }
 
     const guest = await guestService.createGuest(req.body);

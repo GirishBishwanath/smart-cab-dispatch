@@ -49,6 +49,21 @@ const createRideRequest = async (userId, data) => {
         );
     }
 
+    const activeRequest = await RideRequest.findOne({
+        guest: guest._id,
+        $or: [
+            { status: "PENDING" },
+            { status: "APPROVED", ride: null },
+        ],
+    });
+
+    if (activeRequest) {
+        throw new ApiError(
+            409,
+            "You already have an active ride request."
+        );
+    }
+
     const rideRequest = await RideRequest.create({
         guest: guest._id,
         pickupLocation: data.pickupLocation,
@@ -97,13 +112,14 @@ const findRequestForDecision = async (id, session, message) => {
     throw new ApiError(400, message);
 };
 
-const approveRideRequest = async (id) => {
+const approveRideRequest = async (id, adminUserId) => {
     const ride = await withTransaction(async (session) => {
         const request = await RideRequest.findOneAndUpdate(
             { _id: id, status: "PENDING" },
             {
                 $set: {
                     status: "APPROVED",
+                    approvedBy: adminUserId,
                     approvedAt: new Date(),
                 },
             },

@@ -81,20 +81,21 @@ Assigned Ride
 
 ## Product Preview
 
-The repository contains the real product logo in each frontend, but **does not currently contain genuine application screenshots or a recorded demo**. No synthetic screenshots are included.
+The final visual set is captured from the deployed application and covers the four primary product surfaces.
 
-For a future portfolio screenshot set, capture real screens from the deployed applications and store them under `docs/assets/screenshots/`:
-
-| Filename | Capture |
+| Screen | Asset |
 | --- | --- |
-| `landing-page.png` | Landing page + dispatch visualization |
-| `guest-booking.png` | Guest booking screen with map/location selection |
-| `guest-live-ride.png` | Guest active ride with live map, route and ETA |
-| `driver-current-ride.png` | Driver assigned/active ride |
-| `admin-dashboard.png` | Admin operational dashboard |
-| `admin-dispatch.png` | Admin request/dispatch workflow |
+| Landing page | `docs/assets/screenshots/landing-page.jpg` |
+| Guest booking | `docs/assets/screenshots/guest-booking.jpg` |
+| Driver current ride | `docs/assets/screenshots/driver-current-ride.jpg` |
+| Admin operations | `docs/assets/screenshots/admin-dashboard.jpg` |
 
-A genuine demo recording should show: **guest request → admin approval → driver assignment → driver accepts → driver location update → guest/admin live map update → ride completion**.
+These screenshots are intentionally limited to the public product surface, guest booking workflow, driver execution workflow, and admin operations workflow. The guest login screenshot is excluded because it contains a personal Google account/email and provides no additional product value.
+
+The end-to-end workflow represented by the product is:
+
+**Guest request → Admin approval → Driver assignment → Driver accepts → Driver location update → Guest/Admin live map update → Ride completion**
+
 
 ---
 

@@ -5,25 +5,28 @@ import { seedDrivers } from "./drivers.seed.js";
 import { seedGuests } from "./guests.seed.js";
 import { seedRides } from "./rides.seed.js";
 
-const seedDatabase = async () => {
+export const seedDatabase = async () => {
+  console.log("🌱 Starting Database Seed");
+
+  await seedUsers();
+  await seedDrivers();
+  await seedGuests();
+  await seedRides();
+
+  console.log("✅ Database Seed Completed");
+};
+
+const run = async () => {
   try {
     await connectDB();
-
-    console.log("🌱 Starting Database Seed");
-
-    await seedUsers();
-    await seedDrivers();
-    await seedGuests();
-    await seedRides();
-
-    console.log("✅ Database Seed Completed");
-
+    await seedDatabase();
     process.exit(0);
   } catch (error) {
     console.error(error);
-
     process.exit(1);
   }
 };
 
-seedDatabase();
+if (process.argv[1]?.endsWith("seed.js")) {
+  run();
+}
