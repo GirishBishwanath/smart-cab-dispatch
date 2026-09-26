@@ -14,6 +14,7 @@
 <strong>A full-stack, real-time ride dispatch platform for guest, driver, and operations workflows.</strong>
 
 [![CI](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GirishBishwanath/smart-cab-dispatch/actions/workflows/ci.yml)
+[![Deployment](https://img.shields.io/website?url=https%3A%2F%2Fsmart-cab-dispatch.vercel.app%2F&label=Deployment&up_message=Live&down_message=Down)](https://smart-cab-dispatch.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENCE)
 
 [Live Landing](https://smart-cab-dispatch.vercel.app/) · [Guest Portal](https://smart-cab-dispatch-guest.vercel.app/) · [Driver Portal](https://smart-cab-dispatch-driver.vercel.app/) · [Admin Portal](https://smart-cab-dispatch-admin.vercel.app/) · [Backend](https://smart-cab-backend-jcfm.onrender.com/)
