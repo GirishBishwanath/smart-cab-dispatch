@@ -9,6 +9,5 @@ Required files:
 - `driver-current-ride.png` — driver assigned/current ride workflow.
 - `admin-dashboard.png` — admin operations dashboard.
 
-These are static portfolio assets only. They do not contain credentials or application logic.
+These source images are used by the root README.
 
-The root README intentionally excludes the guest-login screenshot because it contains a personal Google account/email.

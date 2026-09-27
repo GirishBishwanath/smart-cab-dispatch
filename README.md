@@ -38,11 +38,7 @@ The repository is a monorepo containing **one backend service and four independe
 | **Admin** | Review requests, dispatch rides, manage guests/drivers, manage driver status, and monitor operations |
 | **Public** | Product overview and portal entry points |
 
-> **Portfolio state:** the application is feature-complete and intentionally frozen. This README describes the current implementation, not a future product roadmap.
-
 ## Live Applications
-
-These URLs are documented by the repository's production deployment configuration.
 
 | Application | Platform | Link |
 | --- | --- | --- |
@@ -52,8 +48,6 @@ These URLs are documented by the repository's production deployment configuratio
 | Admin Portal | Vercel | [Open](https://smart-cab-dispatch-admin.vercel.app/) |
 | Backend API | Render | [Open](https://smart-cab-backend-jcfm.onrender.com/) |
 | Health | Render | [/health](https://smart-cab-backend-jcfm.onrender.com/health) |
-
-Production deployment is provider-driven by Vercel and Render. GitHub Actions is the repository's CI quality gate; it does not deploy production.
 
 ---
 
@@ -91,7 +85,7 @@ Assigned Ride
 
 ## Product Preview
 
-A quick look at the four primary product surfaces. The original high-resolution PNGs are retained in [docs/assets/screenshots/README.md](docs/assets/screenshots/README.md); the presentation below uses a consistent visual height and two-column layout without cropping or stretching the screenshots.
+A quick look at the four primary product surfaces.
 
 <table>
   <tr>
@@ -115,8 +109,6 @@ A quick look at the four primary product surfaces. The original high-resolution 
     </td>
   </tr>
 </table>
-
-The guest login screenshot is intentionally excluded because it contains a personal Google account/email and provides no additional product value.
 
 The end-to-end workflow represented by the product is:
 
@@ -344,8 +336,6 @@ See [Architecture](docs/Architecture.md) for the full room and event model.
 | CI | GitHub Actions | Automated validation |
 | Containers | Docker | Backend runtime/image validation |
 | Hosting | Vercel + Render + MongoDB Atlas | Production hosting |
-
-**Not current dependencies:** Redis, Kafka, Kubernetes, and microservices. They are documented only as possible future-scale options.
 
 ---
 
@@ -582,7 +572,7 @@ Render backend
         └── OSRM
 ```
 
-The actual production flow is:
+The production flow is:
 
 ```text
 Pull Request
@@ -591,14 +581,12 @@ GitHub Actions CI
     ↓
 Merge to main
     ↓
-Vercel frontend deployment(s)
-+
-Render backend deployment
+Vercel / Render deployment
     ↓
-Production smoke test
+Production verification
 ```
 
-The GitHub Actions workflow is **CI**, not provider deployment automation. See [docs/Deployment.md](docs/Deployment.md) for the complete production configuration and smoke-test flow.
+See [docs/Deployment.md](docs/Deployment.md) for the complete production configuration and smoke-test flow.
 
 ---
 
@@ -624,13 +612,11 @@ The GitHub Actions workflow is **CI**, not provider deployment automation. See [
 
 **Separate frontends:** keep Guest, Driver, and Admin permissions/navigation explicit and independently deployable.
 
-**No Redis/Kafka/Kubernetes today:** the current single-backend architecture does not require their operational complexity. The system-design documentation records where they would become justified.
-
 ---
 
 ## Future Scale Direction
 
-These are documented architectural options, not current dependencies:
+Potential future scaling directions include:
 
 - MongoDB `2dsphere` indexing for larger driver pools
 - Socket.IO Redis adapter for multiple backend instances
@@ -642,7 +628,7 @@ These are documented architectural options, not current dependencies:
 
 ## Contributing
 
-This is primarily a portfolio project. Contributions can follow the normal pull-request flow:
+Contributions can follow the normal pull-request flow:
 
 1. Fork the repository.
 2. Create a focused branch.
